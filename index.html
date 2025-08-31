@@ -1350,16 +1350,29 @@ try {
     x2.addEventListener('click',()=>exportCurrentDataToExcel('dashboard_data.xlsx'));
     box.appendChild(x1); box.appendChild(x2); header.appendChild(box);
   }
-  function insertEventListExcelButton(){
-    const tbl=document.getElementById('eventListTable'); if(!tbl) return;
-    const card=tbl.closest('.bg-white')||tbl.parentElement; if(!card) return;
-    let header=card.querySelector('.flex.items-center.justify-between');
-    if(!header){ header=document.createElement('div'); header.className='flex items-center justify-between mb-4'; card.insertBefore(header, card.firstChild); }
-    if(header.querySelector('[data-sun-eventexcel]')) return;
-    const box=document.createElement('div'); box.className='flex items-center gap-2'; box.setAttribute('data-sun-eventexcel','1');
-    const btn=document.createElement('button'); btn.type='button'; btn.className='px-3 py-1.5 text-sm rounded-lg bg-gray-100 hover:bg-gray-200'; btn.textContent='ดาวน์โหลดตาราง (Excel)';
-    btn.addEventListener('click',()=>exportTableToExcel(tbl,'event_list.xlsx'));
-    box.appendChild(btn); header.appendChild(box);
+function insertEventListExcelButton(){
+  const tbl=document.getElementById('eventListTable'); 
+  if(!tbl) return;
+  const card=tbl.closest('.bg-white')||tbl.parentElement; 
+  if(!card) return;
+  let header = card.querySelector('.flex.items-center.justify-between');
+  if(!header){
+    header = document.createElement('div');
+    header.className = 'flex items-center justify-between mb-4';
+    card.insertBefore(header, card.firstChild);
+  }
+  if(header.querySelector('[data-sun-eventexcel]')) return;
+  const box = document.createElement('div');
+  box.className = 'flex items-center gap-2'; 
+  box.setAttribute('data-sun-eventexcel','1');
+  const btn = document.createElement('button'); 
+  btn.type = 'button'; 
+  btn.className = 'px-3 py-1.5 text-sm rounded-lg bg-gray-100 hover:bg-gray-200'; 
+  btn.textContent = 'ดาวน์โหลดตาราง (Excel)';
+  btn.addEventListener('click',()=>exportTableToExcel(tbl,'event_list.xlsx'));
+  box.appendChild(btn); 
+  header.appendChild(box);
+}
   }
   function removeCSVButtons(){
     document.querySelectorAll('button').forEach(b=>{
