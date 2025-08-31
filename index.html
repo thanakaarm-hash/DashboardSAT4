@@ -382,8 +382,8 @@
         });
 
         // ⭐️ ฟังก์ชันโหลดข้อมูลส่วนกลางที่สร้างขึ้นใหม่
-async function loadSharedData() {
-  // 1) พยายามโหลด JSON กลางจาก repo (GitHub Pages: /data/dashboard_data.json)
+        async function loadSharedData() {
+// 1) พยายามโหลด JSON กลางจาก repo (GitHub Pages: /data/dashboard_data.json)
   try {
     const url = './data/dashboard_data.json?cacheBust=' + Date.now(); // กันแคชค้างบน Pages
     const res = await fetch(url, { cache: 'no-store' });
@@ -399,11 +399,12 @@ async function loadSharedData() {
         updateCustomDateRange(storedStartDate, storedEndDate);
       }
 
-      // โหมดผู้เยี่ยมชม: ซ่อนส่วนอัปโหลดหลังประตูยืนยัน
+      // โหมดผู้เยี่ยมชม: ซ่อนส่วนอัปโหลดไว้หลังประตูยืนยันตัวตน
       isAuthenticated = false;
       document.getElementById('dateRangeForm').classList.add('hidden');
       uploadContainer.classList.add('hidden');
       document.getElementById('fileInfo').classList.add('hidden');
+      // ปล่อยให้ authForm แสดงเมื่อผู้ใช้กดเปิดส่วน "อัปโหลด/ผู้ดูแล"
       return;
     }
   } catch (e) {
@@ -435,6 +436,8 @@ async function loadSharedData() {
   // 3) สุดท้ายค่อยใช้ sample ถ้าไม่มีอะไรเลย
   initializeSampleData();
 }
+
+        
         // ⭐️ เรียกใช้ฟังก์ชัน loadSharedData() เมื่อ DOM โหลดเสร็จ
         document.addEventListener('DOMContentLoaded', loadSharedData);
 
