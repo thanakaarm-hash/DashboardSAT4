@@ -1,1250 +1,643 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard เฝ้าระวังสถานการณ์สุขภาพ - เขตสุขภาพที่ 4</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Sarabun', sans-serif; }
-        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .card-shadow { box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .upload-area {
-            border: 3px dashed #cbd5e0;
-            transition: all 0.3s ease;
-        }
-        .upload-area:hover {
-            border-color: #4299e1;
-            background-color: #ebf8ff;
-        }
-        .upload-area.dragover {
-            border-color: #3182ce;
-            background-color: #bee3f8;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard เฝ้าระวังสถานการณ์สุขภาพ - เขตสุขภาพที่ 4</title>
+  <!-- CDN libraries -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Sarabun', sans-serif; }
+    .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .card-shadow { box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    .upload-area { border: 3px dashed #cbd5e0; transition: all 0.3s ease; }
+    .upload-area:hover { border-color: #4299e1; background-color: #ebf8ff; }
+    .upload-area.dragover { border-color: #3182ce; background-color: #bee3f8; }
+  </style>
 </head>
 <body class="bg-gray-50">
-    <!-- Header -->
-    <header class="gradient-bg text-white py-6 shadow-lg">
-        <div class="container mx-auto px-6">
-            <h1 class="text-3xl font-bold text-center">🏥 Dashboard แสดงผลข้อมูลเฝ้าระวังเหตุการณ์โรคและภัยสุขภาพ</h1>
-            <p class="text-center text-blue-100 mt-2 text-lg">ในพื้นที่เขตสุขภาพที่ 4 โดย ทีมตระหนักรู้สถานการณ์ (Situation Awareness Team: SAT)</p>
-            <div class="text-center mt-4 text-blue-100">
-                <p id="dataDateRange" class="text-sm">ข้อมูลตั้งแต่วันที่ <span id="startDate">-</span> ถึง <span id="endDate">-</span></p>
-                <p class="text-xs mt-1">อ้างอิงจากโปรแกรม M-EBS กรมควบคุมโรค</p>
-            </div>
+  <!-- Header -->
+  <header class="gradient-bg text-white py-6 shadow-lg">
+    <div class="container mx-auto px-6">
+      <h1 class="text-3xl font-bold text-center">🏥 Dashboard แสดงผลข้อมูลเฝ้าระวังเหตุการณ์โรคและภัยสุขภาพ</h1>
+      <p class="text-center text-blue-100 mt-2 text-lg">ในพื้นที่เขตสุขภาพที่ 4 โดย ทีมตระหนักรู้สถานการณ์ (Situation Awareness Team: SAT)</p>
+      <div class="text-center mt-4 text-blue-100">
+        <p id="dataDateRange" class="text-sm">ข้อมูลตั้งแต่วันที่ <span id="startDate">-</span> ถึง <span id="endDate">-</span></p>
+        <p class="text-xs mt-1">อ้างอิงจากโปรแกรม M-EBS กรมควบคุมโรค</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="container mx-auto px-6 py-8">
+    <!-- Summary Cards -->
+    <div id="summaryCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 rounded-xl p-6 text-white card-shadow transform hover:scale-105 transition-transform">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-blue-100 text-sm font-medium">จำนวนเหตุการณ์ทั้งหมด</p>
+            <p id="totalEvents" class="text-3xl font-bold">-</p>
+          </div>
+          <div class="text-5xl opacity-80">📊</div>
         </div>
-    </header>
-
-    <div class="container mx-auto px-6 py-8">
-
-        <!-- Summary Cards -->
-        <div id="summaryCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 rounded-xl p-6 text-white card-shadow transform hover:scale-105 transition-transform">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-blue-100 text-sm font-medium">จำนวนเหตุการณ์ทั้งหมด</p>
-                        <p id="totalEvents" class="text-3xl font-bold">1,247</p>
-                    </div>
-                    <div class="text-5xl opacity-80">📊</div>
-                </div>
-            </div>
-            
-            <div class="bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700 rounded-xl p-6 text-white card-shadow transform hover:scale-105 transition-transform">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-green-100 text-sm font-medium">จำนวนผู้ป่วยรวม</p>
-                        <p id="totalCases" class="text-3xl font-bold">8,934</p>
-                    </div>
-                    <div class="text-5xl opacity-80">👥</div>
-                </div>
-            </div>
-            
-            <div class="bg-gradient-to-br from-red-500 via-rose-600 to-pink-700 rounded-xl p-6 text-white card-shadow transform hover:scale-105 transition-transform">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-red-100 text-sm font-medium">จำนวนเสียชีวิต</p>
-                        <p id="totalDeaths" class="text-3xl font-bold">89</p>
-                    </div>
-                    <div class="text-5xl opacity-80">⚠️</div>
-                </div>
-            </div>
-            
-            <div class="bg-gradient-to-br from-purple-500 via-violet-600 to-indigo-700 rounded-xl p-6 text-white card-shadow transform hover:scale-105 transition-transform">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-purple-100 text-sm font-medium">จังหวัดที่เกี่ยวข้อง</p>
-                        <p id="totalProvinces" class="text-3xl font-bold">18</p>
-                    </div>
-                    <div class="text-5xl opacity-80">📍</div>
-                </div>
-            </div>
+      </div>
+      <div class="bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700 rounded-xl p-6 text-white card-shadow transform hover:scale-105 transition-transform">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-green-100 text-sm font-medium">จำนวนผู้ป่วยรวม</p>
+            <p id="totalCases" class="text-3xl font-bold">-</p>
+          </div>
+          <div class="text-5xl opacity-80">👥</div>
         </div>
-
-        <!-- Charts Section -->
-        <div id="chartsSection">
-            <!-- Event Group Charts -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                <div class="bg-white rounded-xl card-shadow p-8 border-l-4 border-indigo-500">
-                    <div class="flex items-center mb-6">
-                        <div class="bg-indigo-100 p-3 rounded-lg mr-4">
-                            <svg class="w-6 h-6 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <h3 id="eventGroupTitle" class="text-xl font-semibold text-gray-800">สัดส่วนกลุ่มโรคและภัยสุขภาพ</h3>
-                            <p class="text-gray-600 text-sm">แสดงสัดส่วนเหตุการณ์ในแต่ละกลุ่มโรค</p>
-                        </div>
-                    </div>
-                    <div class="h-96">
-                        <canvas id="eventGroupPieChart"></canvas>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl card-shadow p-8 border-l-4 border-blue-500">
-                    <div class="flex items-center mb-6">
-                        <div class="bg-blue-100 p-3 rounded-lg mr-4">
-                            <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <h3 id="eventListTitle" class="text-xl font-semibold text-gray-800">ตารางแสดงรายชื่อโรคและภัยสุขภาพ</h3>
-                            <p class="text-gray-600 text-sm">รายชื่อโรคและจำนวนเหตุการณ์เรียงตามลำดับ</p>
-                        </div>
-                    </div>
-                    <div class="h-96 overflow-y-auto">
-                        <div id="eventListTable"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Province Chart -->
-            <div class="bg-white rounded-xl card-shadow p-8 mb-8 border-l-4 border-green-500">
-                <div class="flex items-center mb-6">
-                    <div class="bg-green-100 p-3 rounded-lg mr-4">
-                        <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <div class="flex-1">
-                        <h3 id="provinceTitle" class="text-xl font-semibold text-gray-800">การกระจายตามจังหวัด</h3>
-                        <p class="text-gray-600 text-sm">จังหวัดที่มีเหตุการณ์มากที่สุด 10 อันดับแรก</p>
-                    </div>
-                </div>
-                <div class="h-96">
-                    <canvas id="provinceChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Timeline Chart -->
-            <div class="bg-white rounded-xl card-shadow p-8 mb-8 border-l-4 border-purple-500">
-                <div class="flex items-center mb-6">
-                    <div class="bg-purple-100 p-3 rounded-lg mr-4">
-                        <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <div class="flex-1">
-                        <h3 id="timelineTitle" class="text-xl font-semibold text-gray-800">แนวโน้มเหตุการณ์ตามเวลา</h3>
-                        <p class="text-gray-600 text-sm">การเปลี่ยนแปลงจำนวนเหตุการณ์ในแต่ละเดือน</p>
-                    </div>
-                </div>
-                <div class="h-96">
-                    <canvas id="timelineChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Priority Status Chart -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="bg-white rounded-xl card-shadow p-8 border-l-4 border-orange-500">
-                    <div class="flex items-center mb-6">
-                        <div class="bg-orange-100 p-3 rounded-lg mr-4">
-                            <svg class="w-6 h-6 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <h3 id="priorityTitle" class="text-xl font-semibold text-gray-800">เกณฑ์ตรวจสอบข่าว</h3>
-                            <p class="text-gray-600 text-sm">ระดับความสำคัญของเหตุการณ์</p>
-                        </div>
-                    </div>
-                    <div class="h-80">
-                        <canvas id="priorityChart"></canvas>
-                    </div>
-                </div>
-                
-                <div class="bg-white rounded-xl card-shadow p-8 border-l-4 border-teal-500">
-                    <div class="flex items-center mb-6">
-                        <div class="bg-teal-100 p-3 rounded-lg mr-4">
-                            <svg class="w-6 h-6 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clip-rule="evenodd"/>
-                            </svg>
-                        </div>
-                        <div class="flex-1">
-                            <h3 id="statusTitle" class="text-xl font-semibold text-gray-800">สถานะการติดตาม</h3>
-                            <p class="text-gray-600 text-sm">ความคืบหน้าการดำเนินการ</p>
-                        </div>
-                    </div>
-                    <div class="h-80">
-                        <canvas id="statusChart"></canvas>
-                    </div>
-                </div>
-            </div>
+      </div>
+      <div class="bg-gradient-to-br from-red-500 via-rose-600 to-pink-700 rounded-xl p-6 text-white card-shadow transform hover:scale-105 transition-transform">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-red-100 text-sm font-medium">จำนวนเสียชีวิต</p>
+            <p id="totalDeaths" class="text-3xl font-bold">-</p>
+          </div>
+          <div class="text-5xl opacity-80">⚠️</div>
         </div>
-
-        <!-- Data Table -->
-        <div id="dataTableSection" class="bg-white rounded-xl card-shadow p-8 mt-8 border-l-4 border-gray-500">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center">
-                    <div class="bg-gray-100 p-3 rounded-lg mr-4">
-                        <svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h3 class="text-xl font-semibold text-gray-800">ตารางข้อมูลรายละเอียด</h3>
-                        <p class="text-gray-600 text-sm">ข้อมูลเหตุการณ์ล่าสุด (แสดง 10 รายการล่าสุด)</p>
-                    </div>
-                </div>
-            </div>
-            <div class="overflow-x-auto">
-                <table id="dataTable" class="min-w-full table-auto">
-                    <thead class="bg-gray-50">
-                        <tr id="tableHeader"></tr>
-                    </thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
+      </div>
+      <div class="bg-gradient-to-br from-purple-500 via-violet-600 to-indigo-700 rounded-xl p-6 text-white card-shadow transform hover:scale-105 transition-transform">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-purple-100 text-sm font-medium">จังหวัดที่เกี่ยวข้อง</p>
+            <p id="totalProvinces" class="text-3xl font-bold">-</p>
+          </div>
+          <div class="text-5xl opacity-80">📍</div>
         </div>
-
-        <!-- Upload Section (Dropdown) -->
-        <div class="mt-8">
-            <div class="bg-white rounded-xl card-shadow border-l-4 border-indigo-500 overflow-hidden">
-                <button id="uploadToggle" class="w-full p-6 text-left hover:bg-gray-50 transition-colors flex items-center justify-between">
-                    <div class="flex items-center">
-                        <div class="bg-indigo-100 p-3 rounded-lg mr-4">
-                            <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <h2 class="text-xl font-semibold text-gray-800">อัพโหลดไฟล์ Excel ใหม่</h2>
-                            <p class="text-gray-600 text-sm">คลิกเพื่อเปลี่ยนข้อมูลหรืออัพเดทข้อมูลใหม่</p>
-                        </div>
-                    </div>
-                    <svg id="uploadArrow" class="w-6 h-6 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                </button>
-                
-                <div id="uploadContent" class="hidden border-t border-gray-200 p-8">
-                    <!-- Authentication Form -->
-                    <div id="authForm" class="mb-6">
-                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                            <div class="flex items-center">
-                                <svg class="w-5 h-5 text-yellow-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
-                                </svg>
-                                <p class="text-yellow-800 font-medium">กรุณายืนยันตัวตนก่อนอัพโหลดไฟล์</p>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
-                                <input type="text" id="username" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="กรอก Username">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                                <input type="password" id="password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="กรอก Password">
-                            </div>
-                        </div>
-                        <button id="authBtn" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-                            ยืนยันตัวตน
-                        </button>
-                        <div id="authError" class="hidden mt-2 text-red-600 text-sm"></div>
-                    </div>
-
-                    <!-- Date Range Form -->
-                    <div id="dateRangeForm" class="mb-6 hidden">
-                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                            <div class="flex items-center mb-3">
-                                <svg class="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
-                                </svg>
-                                <p class="text-blue-800 font-medium">กำหนดช่วงวันที่ข้อมูล</p>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">วันที่เริ่มต้น</label>
-                                    <input type="date" id="customStartDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">วันที่สิ้นสุด</label>
-                                    <input type="date" id="customEndDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                </div>
-                            </div>
-                            <button id="updateDateBtn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-                                อัพเดทช่วงวันที่
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Upload Area (Hidden initially) -->
-                    <div id="uploadArea" class="upload-area rounded-lg p-12 text-center cursor-pointer hidden">
-                        <div class="flex flex-col items-center">
-                            <svg class="w-16 h-16 text-indigo-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                            </svg>
-                            <p class="text-xl text-gray-600 mb-2">คลิกหรือลากไฟล์ Excel มาวางที่นี่</p>
-                            <p class="text-gray-400">รองรับไฟล์ .xlsx และ .xls</p>
-                        </div>
-                        <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
-                    </div>
-                    
-                    <div id="fileInfo" class="mt-4 hidden">
-                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <p class="text-green-800 font-medium">✅ ไฟล์ที่อัพโหลด: <span id="fileName"></span></p>
-                            <p class="text-green-600 text-sm mt-1">จำนวนแถวข้อมูล: <span id="rowCount"></span> แถว</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
 
-    <script>
-        let chartInstances = {};
-        let currentData = [];
-        let fixedDateRange = null;
+    <!-- Charts Section -->
+    <div id="chartsSection">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div class="bg-white rounded-xl card-shadow p-8 border-l-4 border-indigo-500">
+          <div class="flex items-center mb-6">
+            <div class="bg-indigo-100 p-3 rounded-lg mr-4">
+              <svg class="w-6 h-6 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"/>
+              </svg>
+            </div>
+            <div class="flex-1">
+              <h3 id="eventGroupTitle" class="text-xl font-semibold text-gray-800">สัดส่วนกลุ่มโรคและภัยสุขภาพ</h3>
+              <p class="text-gray-600 text-sm">แสดงสัดส่วนเหตุการณ์ในแต่ละกลุ่มโรค</p>
+            </div>
+          </div>
+          <div class="h-96"><canvas id="eventGroupPieChart"></canvas></div>
+        </div>
 
-        // File upload handling
-        const uploadToggle = document.getElementById('uploadToggle');
-        const uploadContent = document.getElementById('uploadContent');
-        const uploadArrow = document.getElementById('uploadArrow');
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const fileInfo = document.getElementById('fileInfo');
-        const authBtn = document.getElementById('authBtn');
-        const authForm = document.getElementById('authForm');
-        const authError = document.getElementById('authError');
-        let isAuthenticated = false;
+        <div class="bg-white rounded-xl card-shadow p-8 border-l-4 border-blue-500">
+          <div class="flex items-center mb-6">
+            <div class="bg-blue-100 p-3 rounded-lg mr-4">
+              <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+              </svg>
+            </div>
+            <div class="flex-1">
+              <h3 id="eventListTitle" class="text-xl font-semibold text-gray-800">ตารางแสดงรายชื่อโรคและภัยสุขภาพ</h3>
+              <p class="text-gray-600 text-sm">รายชื่อโรคและจำนวนเหตุการณ์เรียงตามลำดับ</p>
+            </div>
+          </div>
+          <div class="h-96 overflow-y-auto"><div id="eventListTable"></div></div>
+        </div>
+      </div>
 
-        // Toggle upload section
-        uploadToggle.addEventListener('click', () => {
-            uploadContent.classList.toggle('hidden');
-            uploadArrow.classList.toggle('rotate-180');
-        });
+      <!-- Province Chart -->
+      <div class="bg-white rounded-xl card-shadow p-8 mb-8 border-l-4 border-green-500">
+        <div class="flex items-center mb-6">
+          <div class="bg-green-100 p-3 rounded-lg mr-4">
+            <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 id="provinceTitle" class="text-xl font-semibold text-gray-800">การกระจายตามจังหวัด</h3>
+            <p class="text-gray-600 text-sm">จังหวัดที่มีเหตุการณ์มากที่สุด 10 อันดับแรก</p>
+          </div>
+        </div>
+        <div class="h-96"><canvas id="provinceChart"></canvas></div>
+      </div>
 
-        // Authentication handling
-        authBtn.addEventListener('click', () => {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
-            if (username === 'SAT Manager' && password === 'odpc004999') {
-                isAuthenticated = true;
-                authForm.classList.add('hidden');
-                document.getElementById('dateRangeForm').classList.remove('hidden');
-                uploadArea.classList.remove('hidden');
-                authError.classList.add('hidden');
-                
-                // Clear file info when re-authenticating
-                document.getElementById('fileInfo').classList.add('hidden');
-            } else {
-                authError.textContent = 'Username หรือ Password ไม่ถูกต้อง';
-                authError.classList.remove('hidden');
-            }
-        });
+      <!-- Timeline Chart -->
+      <div class="bg-white rounded-xl card-shadow p-8 mb-8 border-l-4 border-purple-500">
+        <div class="flex items-center mb-6">
+          <div class="bg-purple-100 p-3 rounded-lg mr-4">
+            <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 id="timelineTitle" class="text-xl font-semibold text-gray-800">แนวโน้มเหตุการณ์ตามเวลา</h3>
+            <p class="text-gray-600 text-sm">การเปลี่ยนแปลงจำนวนเหตุการณ์ในแต่ละเดือน</p>
+          </div>
+        </div>
+        <div class="h-96"><canvas id="timelineChart"></canvas></div>
+      </div>
 
-        // Enter key support for authentication
-        document.getElementById('password').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                authBtn.click();
-            }
-        });
+      <!-- Priority & Status Charts -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="bg-white rounded-xl card-shadow p-8 border-l-4 border-orange-500">
+          <div class="flex items-center mb-6">
+            <div class="bg-orange-100 p-3 rounded-lg mr-4">
+              <svg class="w-6 h-6 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+              </svg>
+            </div>
+            <div class="flex-1">
+              <h3 id="priorityTitle" class="text-xl font-semibold text-gray-800">เกณฑ์ตรวจสอบข่าว</h3>
+              <p class="text-gray-600 text-sm">ระดับความสำคัญของเหตุการณ์</p>
+            </div>
+          </div>
+          <div class="h-80"><canvas id="priorityChart"></canvas></div>
+        </div>
 
-        // Date range update handling
-        document.getElementById('updateDateBtn').addEventListener('click', () => {
-            const startDate = document.getElementById('customStartDate').value;
-            const endDate = document.getElementById('customEndDate').value;
-            
-            if (startDate && endDate) {
-                updateCustomDateRange(startDate, endDate);
-                // Store the custom date range
-                localStorage.setItem('customStartDate', startDate);
-                localStorage.setItem('customEndDate', endDate);
-            } else {
-                alert('กรุณากรอกวันที่เริ่มต้นและวันที่สิ้นสุด');
-            }
-        });
+        <div class="bg-white rounded-xl card-shadow p-8 border-l-4 border-teal-500">
+          <div class="flex items-center mb-6">
+            <div class="bg-teal-100 p-3 rounded-lg mr-4">
+              <svg class="w-6 h-6 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+              </svg>
+            </div>
+            <div class="flex-1">
+              <h3 id="statusTitle" class="text-xl font-semibold text-gray-800">สถานะการติดตาม</h3>
+              <p class="text-gray-600 text-sm">ความคืบหน้าการดำเนินการ</p>
+            </div>
+          </div>
+          <div class="h-80"><canvas id="statusChart"></canvas></div>
+        </div>
+      </div>
+    </div>
 
-        // Load stored date range and data on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const storedStartDate = localStorage.getItem('customStartDate');
-            const storedEndDate = localStorage.getItem('customEndDate');
-            const storedData = localStorage.getItem('uploadedData');
-            
-            if (storedStartDate && storedEndDate) {
-                document.getElementById('customStartDate').value = storedStartDate;
-                document.getElementById('customEndDate').value = storedEndDate;
-                updateCustomDateRange(storedStartDate, storedEndDate);
-            }
-            
-            // Load stored data if available, otherwise use sample data
-            if (storedData) {
-                try {
-                    const parsedData = JSON.parse(storedData);
-                    currentData = parsedData;
-                    processData(parsedData);
-                    
-                    // Show that data has been loaded from storage
-                    const uploadContent = document.getElementById('uploadContent');
-                    const authForm = document.getElementById('authForm');
-                    const dateRangeForm = document.getElementById('dateRangeForm');
-                    
-                    // Reset authentication state but keep data
-                    isAuthenticated = false;
-                    authForm.classList.remove('hidden');
-                    dateRangeForm.classList.add('hidden');
-                    document.getElementById('uploadArea').classList.add('hidden');
-                    document.getElementById('fileInfo').classList.add('hidden');
-                    
-                    // Clear auth fields
-                    document.getElementById('username').value = '';
-                    document.getElementById('password').value = '';
-                    document.getElementById('authError').classList.add('hidden');
-                } catch (e) {
-                    console.error('Error loading stored data:', e);
-                    initializeSampleData();
-                }
-            } else {
-                initializeSampleData();
-            }
-        });
+    <!-- Data Table -->
+    <div id="dataTableSection" class="bg-white rounded-xl card-shadow p-8 mt-8 border-l-4 border-gray-500">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center">
+          <div class="bg-gray-100 p-3 rounded-lg mr-4">
+            <svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-xl font-semibold text-gray-800">ตารางข้อมูลรายละเอียด</h3>
+            <p class="text-gray-600 text-sm">ข้อมูลเหตุการณ์ล่าสุด (แสดง 10 รายการล่าสุด)</p>
+          </div>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table id="dataTable" class="min-w-full table-auto">
+          <thead class="bg-gray-50"><tr id="tableHeader"></tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
 
-        uploadArea.addEventListener('click', () => fileInput.click());
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFile(files[0]);
-            }
-        });
+    <!-- Upload Section (Dropdown) -->
+    <div class="mt-8">
+      <div class="bg-white rounded-xl card-shadow border-l-4 border-indigo-500 overflow-hidden">
+        <button id="uploadToggle" class="w-full p-6 text-left hover:bg-gray-50 transition-colors flex items-center justify-between">
+          <div class="flex items-center">
+            <div class="bg-indigo-100 p-3 rounded-lg mr-4">
+              <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-xl font-semibold text-gray-800">อัพโหลดไฟล์ Excel ใหม่</h2>
+              <p class="text-gray-600 text-sm">คลิกเพื่อเปลี่ยนข้อมูลหรืออัพเดทข้อมูลใหม่</p>
+            </div>
+          </div>
+          <svg id="uploadArrow" class="w-6 h-6 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
 
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFile(e.target.files[0]);
-            }
-        });
+        <div id="uploadContent" class="hidden border-t border-gray-200 p-8">
+          <!-- Authentication Form -->
+          <div id="authForm" class="mb-6">
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <div class="flex items-center">
+                <svg class="w-5 h-5 text-yellow-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                </svg>
+                <p class="text-yellow-800 font-medium">กรุณายืนยันตัวตนก่อนอัพโหลดไฟล์</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                <input type="text" id="username" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="กรอก Username" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <input type="password" id="password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="กรอก Password" />
+              </div>
+            </div>
+            <button id="authBtn" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">ยืนยันตัวตน</button>
+            <div id="authError" class="hidden mt-2 text-red-600 text-sm"></div>
+          </div>
 
-        function handleFile(file) {
-            if (!isAuthenticated) {
-                alert('กรุณายืนยันตัวตนก่อนอัพโหลดไฟล์');
-                return;
-            }
+          <!-- Date Range Form -->
+          <div id="dateRangeForm" class="mb-6 hidden">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div class="flex items-center mb-3">
+                <svg class="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                </svg>
+                <p class="text-blue-800 font-medium">กำหนดช่วงวันที่ข้อมูล</p>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">วันที่เริ่มต้น</label>
+                  <input type="date" id="customStartDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">วันที่สิ้นสุด</label>
+                  <input type="date" id="customEndDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                </div>
+              </div>
+              <button id="updateDateBtn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">อัพเดทช่วงวันที่</button>
+            </div>
+          </div>
 
-            if (!file.name.match(/\.(xlsx|xls)$/)) {
-                alert('กรุณาเลือกไฟล์ Excel (.xlsx หรือ .xls)');
-                return;
-            }
+          <!-- Upload Area (Hidden initially) -->
+          <div id="uploadArea" class="upload-area rounded-lg p-12 text-center cursor-pointer hidden">
+            <div class="flex flex-col items-center">
+              <svg class="w-16 h-16 text-indigo-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+              </svg>
+              <p class="text-xl text-gray-600 mb-2">คลิกหรือลากไฟล์ Excel มาวางที่นี่</p>
+              <p class="text-gray-400">รองรับไฟล์ .xlsx และ .xls</p>
+            </div>
+            <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden" />
+          </div>
 
-            document.getElementById('fileName').textContent = file.name;
-            fileInfo.classList.remove('hidden');
+          <div id="fileInfo" class="mt-4 hidden">
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p class="text-green-800 font-medium">✅ ไฟล์ที่อัพโหลด: <span id="fileName"></span></p>
+              <p class="text-green-600 text-sm mt-1">จำนวนแถวข้อมูล: <span id="rowCount"></span> แถว</p>
+            </div>
+          </div>
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                
-                document.getElementById('rowCount').textContent = jsonData.length;
-                currentData = jsonData;
-                
-                // Store uploaded data in localStorage
-                localStorage.setItem('uploadedData', JSON.stringify(jsonData));
-                
-                processData(jsonData);
-                
-                // Hide upload section after successful upload
-                uploadContent.classList.add('hidden');
-                uploadArrow.classList.remove('rotate-180');
-            };
-            reader.readAsArrayBuffer(file);
+          <!-- NEW: ปุ่มดาวน์โหลด JSON สำหรับอัปขึ้น repo/data/data.json -->
+          <button id="downloadJsonBtn" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-medium hidden">
+            ดาวน์โหลดไฟล์ JSON (สำหรับอัปขึ้น data/data.json)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let chartInstances = {};
+    let currentData = [];
+    let fixedDateRange = null;
+
+    // Elements
+    const uploadToggle   = document.getElementById('uploadToggle');
+    const uploadContent  = document.getElementById('uploadContent');
+    const uploadArrow    = document.getElementById('uploadArrow');
+    const uploadArea     = document.getElementById('uploadArea');
+    const fileInput      = document.getElementById('fileInput');
+    const fileInfo       = document.getElementById('fileInfo');
+    const authBtn        = document.getElementById('authBtn');
+    const authForm       = document.getElementById('authForm');
+    const authError      = document.getElementById('authError');
+    const downloadBtn    = document.getElementById('downloadJsonBtn');
+    let isAuthenticated  = false;
+
+    // Toggle upload section
+    uploadToggle.addEventListener('click', () => {
+      uploadContent.classList.toggle('hidden');
+      uploadArrow.classList.toggle('rotate-180');
+    });
+
+    // Authentication handling (client-side only)
+    authBtn.addEventListener('click', () => {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      if (username === 'SAT Manager' && password === 'odpc004999') {
+        isAuthenticated = true;
+        authForm.classList.add('hidden');
+        document.getElementById('dateRangeForm').classList.remove('hidden');
+        uploadArea.classList.remove('hidden');
+        authError.classList.add('hidden');
+        document.getElementById('fileInfo').classList.add('hidden');
+        // show download json button after auth
+        downloadBtn.classList.remove('hidden');
+      } else {
+        authError.textContent = 'Username หรือ Password ไม่ถูกต้อง';
+        authError.classList.remove('hidden');
+      }
+    });
+
+    // Enter key support for authentication
+    document.getElementById('password').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') authBtn.click();
+    });
+
+    // Date range update handling
+    document.getElementById('updateDateBtn').addEventListener('click', () => {
+      const startDate = document.getElementById('customStartDate').value;
+      const endDate   = document.getElementById('customEndDate').value;
+      if (startDate && endDate) {
+        updateCustomDateRange(startDate, endDate);
+        localStorage.setItem('customStartDate', startDate);
+        localStorage.setItem('customEndDate',   endDate);
+      } else {
+        alert('กรุณากรอกวันที่เริ่มต้นและวันที่สิ้นสุด');
+      }
+    });
+
+    // NEW: โหลดข้อมูลกลางจาก data/data.json ก่อนเสมอ
+    async function loadSharedData() {
+      try {
+        const res = await fetch('./data/data.json?ts=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) return false;
+        const json = await res.json();
+        if (Array.isArray(json)) {
+          currentData = json;
+          processData(json);
+          return true;
         }
+      } catch (e) { console.error('loadSharedData error', e); }
+      return false;
+    }
 
-        // Initialize with sample data
-        function initializeSampleData() {
-            const sampleData = [
-                {Event_ID: 'E001', Event_Group: 'โรคติดต่อ', Event_list: 'ไข้เลือดออก', Province_Name: 'เชียงใหม่', District_Name: 'เมือง', Subdistrict_Name: 'ช้างเผือก', Place_Type: 'โรงเรียน', Date_Received: '04-01-2567', Onset: '02-01-2567', case: 25, Death: 0, Priority: 'สูง', Status: 'กำลังติดตาม', Investigation: 'ต้องสอบสวน'},
-                {Event_ID: 'E002', Event_Group: 'โรคไม่ติดต่อ', Event_list: 'อาหารเป็นพิษ', Province_Name: 'ลำปาง', District_Name: 'เกาะคา', Subdistrict_Name: 'เกาะคา', Place_Type: 'ร้านอาหาร', Date_Received: '20-02-2567', Onset: '18-02-2567', case: 12, Death: 1, Priority: 'กลาง', Status: 'เสร็จสิ้น', Investigation: 'สอบสวนแล้ว'},
-                {Event_ID: 'E003', Event_Group: 'อุบัติเหตุ', Event_list: 'อุบัติเหตุจราจร', Province_Name: 'ลำพูน', District_Name: 'เมือง', Subdistrict_Name: 'นายม', Place_Type: 'ถนน', Date_Received: '10-03-2567', Onset: '10-03-2567', case: 8, Death: 2, Priority: 'สูง', Status: 'กำลังติดตาม', Investigation: 'ไม่ต้องสอบสวน'},
-                {Event_ID: 'E004', Event_Group: 'โรคติดต่อ', Event_list: 'โควิด-19', Province_Name: 'แพร่', District_Name: 'เมือง', Subdistrict_Name: 'ในเวียง', Place_Type: 'โรงพยาบาล', Date_Received: '05-04-2567', Onset: '02-04-2567', case: 45, Death: 3, Priority: 'สูง', Status: 'กำลังติดตาม', Investigation: 'ต้องสอบสวน'},
-                {Event_ID: 'E005', Event_Group: 'สิ่งแวดล้อม', Event_list: 'มลพิษทางอากาศ', Province_Name: 'น่าน', District_Name: 'เมือง', Subdistrict_Name: 'ในเวียง', Place_Type: 'โรงงาน', Date_Received: '12-05-2567', Onset: '10-05-2567', case: 30, Death: 0, Priority: 'กลาง', Status: 'รอดำเนินการ', Investigation: 'ต้องสอบสวน'},
-                {Event_ID: 'E006', Event_Group: 'โรคติดต่อ', Event_list: 'มือเท้าปาก', Province_Name: 'เชียงราย', District_Name: 'เมือง', Subdistrict_Name: 'รอบเวียง', Place_Type: 'ศูนย์เด็กเล็ก', Date_Received: '18-06-2567', Onset: '15-06-2567', case: 18, Death: 0, Priority: 'กลาง', Status: 'กำลังติดตาม', Investigation: 'ต้องสอบสวน'},
-                {Event_ID: 'E007', Event_Group: 'โรคไม่ติดต่อ', Event_list: 'พิษจากสารเคมี', Province_Name: 'พะเยา', District_Name: 'เมือง', Subdistrict_Name: 'เวียง', Place_Type: 'ชุมชน', Date_Received: '22-07-2567', Onset: '20-07-2567', case: 15, Death: 1, Priority: 'สูง', Status: 'เสร็จสิ้น', Investigation: 'สอบสวนแล้ว'},
-                {Event_ID: 'E008', Event_Group: 'อุบัติเหตุ', Event_list: 'ไฟไหม้', Province_Name: 'เชียงใหม่', District_Name: 'สันทราย', Subdistrict_Name: 'สันทราย', Place_Type: 'โรงงาน', Date_Received: '14-08-2567', Onset: '14-08-2567', case: 22, Death: 4, Priority: 'สูง', Status: 'กำลังติดตาม', Investigation: 'ไม่ต้องสอบสวน'},
-                {Event_ID: 'E009', Event_Group: 'โรคติดต่อ', Event_list: 'ไข้หวัดใหญ่', Province_Name: 'ลำปาง', District_Name: 'แม่เมาะ', Subdistrict_Name: 'แม่เมาะ', Place_Type: 'โรงเรียน', Date_Received: '08-09-2567', Onset: '05-09-2567', case: 35, Death: 0, Priority: 'กลาง', Status: 'กำลังติดตาม', Investigation: 'ต้องสอบสวน'},
-                {Event_ID: 'E010', Event_Group: 'สิ่งแวดล้อม', Event_list: 'น้ำเสีย', Province_Name: 'ลำพูน', District_Name: 'ป่าซาง', Subdistrict_Name: 'ป่าซาง', Place_Type: 'แหล่งน้ำ', Date_Received: '06-12-2567', Onset: '04-12-2567', case: 28, Death: 0, Priority: 'กลาง', Status: 'รอดำเนินการ', Investigation: 'ต้องสอบสวน'}
-            ];
-            
-            currentData = sampleData;
-            processData(sampleData);
+    document.addEventListener('DOMContentLoaded', async function () {
+      // 1) พยายามโหลดข้อมูลกลางจาก repo ก่อน
+      const ok = await loadSharedData();
+
+      // 2) โหลดช่วงวันที่ที่เคยตั้งไว้ (ถ้ามี)
+      const storedStartDate = localStorage.getItem('customStartDate');
+      const storedEndDate   = localStorage.getItem('customEndDate');
+      if (storedStartDate && storedEndDate) {
+        document.getElementById('customStartDate').value = storedStartDate;
+        document.getElementById('customEndDate').value   = storedEndDate;
+        updateCustomDateRange(storedStartDate, storedEndDate);
+      }
+
+      // 3) ถ้าไม่มี data.json หรือโหลดไม่สำเร็จ → ลองใช้ localStorage → ไม่มีก็ sample
+      if (!ok) {
+        const storedData = localStorage.getItem('uploadedData');
+        if (storedData) {
+          try {
+            const parsedData = JSON.parse(storedData);
+            currentData = parsedData;
+            processData(parsedData);
+            // รีเซ็ต UI อัพโหลดให้กลับไปโหมดล็อกอิน
+            isAuthenticated = false;
+            authForm.classList.remove('hidden');
+            document.getElementById('dateRangeForm').classList.add('hidden');
+            uploadArea.classList.add('hidden');
+            document.getElementById('fileInfo').classList.add('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('authError').classList.add('hidden');
+          } catch (e) {
+            console.error('Error loading stored data:', e);
+            initializeSampleData();
+          }
+        } else {
+          initializeSampleData();
         }
+      }
+    });
 
-        function processData(data) {
-            // Calculate summary statistics
-            const totalEvents = data.length;
-            const totalCases = data.reduce((sum, row) => sum + (parseInt(row.case) || 0), 0);
-            const totalDeaths = data.reduce((sum, row) => sum + (parseInt(row.Death) || 0), 0);
-            const uniqueProvinces = [...new Set(data.map(row => row.Province_Name))].length;
+    // Upload handlers
+    uploadArea.addEventListener('click', () => fileInput.click());
+    uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+    uploadArea.addEventListener('dragleave', () => { uploadArea.classList.remove('dragover'); });
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      const files = e.dataTransfer.files; if (files.length > 0) handleFile(files[0]);
+    });
+    fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFile(e.target.files[0]); });
 
-            document.getElementById('totalEvents').textContent = totalEvents.toLocaleString();
-            document.getElementById('totalCases').textContent = totalCases.toLocaleString();
-            document.getElementById('totalDeaths').textContent = totalDeaths.toLocaleString();
-            document.getElementById('totalProvinces').textContent = uniqueProvinces;
+    function handleFile(file) {
+      if (!isAuthenticated) { alert('กรุณายืนยันตัวตนก่อนอัพโหลดไฟล์'); return; }
+      if (!file.name.match(/\.(xlsx|xls)$/)) { alert('กรุณาเลือกไฟล์ Excel (.xlsx หรือ .xls)'); return; }
 
-            // Update date range
-            updateDateRange(data);
+      document.getElementById('fileName').textContent = file.name;
+      fileInfo.classList.remove('hidden');
 
-            // Create charts
-            createEventListTable(data);
-            createEventGroupPieChart(data);
-            createProvinceChart(data);
-            createTimelineChart(data);
-            createPriorityChart(data);
-            createStatusChart(data);
-            createDataTable(data);
-        }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
 
-        function updateDateRange(data) {
-            // Use fixed date range if available
-            if (fixedDateRange) {
-                document.getElementById('startDate').textContent = fixedDateRange.start;
-                document.getElementById('endDate').textContent = fixedDateRange.end;
-                return;
-            }
-            
-            // Function to parse Thai Buddhist date format (dd-mm-yyyy) to JavaScript Date
-            function parseThaiDate(dateStr) {
-                if (!dateStr) return null;
-                
-                // Handle different date formats
-                let day, month, year;
-                
-                if (dateStr.includes('-')) {
-                    // Format: dd-mm-yyyy (Buddhist year)
-                    const parts = dateStr.split('-');
-                    if (parts.length === 3) {
-                        day = parseInt(parts[0]);
-                        month = parseInt(parts[1]);
-                        year = parseInt(parts[2]);
-                        
-                        // Convert Buddhist year to Christian year if needed
-                        if (year > 2500) {
-                            year = year - 543;
-                        }
-                        
-                        return new Date(year, month - 1, day);
-                    }
-                } else if (dateStr.includes('/')) {
-                    // Format: dd/mm/yyyy
-                    const parts = dateStr.split('/');
-                    if (parts.length === 3) {
-                        day = parseInt(parts[0]);
-                        month = parseInt(parts[1]);
-                        year = parseInt(parts[2]);
-                        
-                        // Convert Buddhist year to Christian year if needed
-                        if (year > 2500) {
-                            year = year - 543;
-                        }
-                        
-                        return new Date(year, month - 1, day);
-                    }
-                } else {
-                    // Try standard date parsing as fallback
-                    const date = new Date(dateStr);
-                    return isNaN(date) ? null : date;
-                }
-                
-                return null;
-            }
-            
-            const dates = data.map(row => parseThaiDate(row.Date_Received)).filter(date => date && !isNaN(date));
-            if (dates.length > 0) {
-                const minDate = new Date(Math.min(...dates));
-                const maxDate = new Date(Math.max(...dates));
-                
-                const formatDate = (date) => {
-                    const buddhistYear = date.getFullYear() + 543;
-                    const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-                                  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-                    return `${date.getDate()} ${months[date.getMonth()]} ${buddhistYear}`;
-                };
-                
-                const startDateText = formatDate(minDate);
-                const endDateText = formatDate(maxDate);
-                
-                // Set fixed date range for future use
-                fixedDateRange = {
-                    start: startDateText,
-                    end: endDateText
-                };
-                
-                document.getElementById('startDate').textContent = startDateText;
-                document.getElementById('endDate').textContent = endDateText;
-            }
-        }
+        document.getElementById('rowCount').textContent = jsonData.length;
+        currentData = jsonData;
 
-        function updateCustomDateRange(startDateStr, endDateStr) {
-            const formatDate = (dateStr) => {
-                const date = new Date(dateStr);
-                const buddhistYear = date.getFullYear() + 543;
-                const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-                              'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-                return `${date.getDate()} ${months[date.getMonth()]} ${buddhistYear}`;
-            };
-            
-            const startDateText = formatDate(startDateStr);
-            const endDateText = formatDate(endDateStr);
-            
-            // Update fixed date range
-            fixedDateRange = {
-                start: startDateText,
-                end: endDateText
-            };
-            
-            document.getElementById('startDate').textContent = startDateText;
-            document.getElementById('endDate').textContent = endDateText;
-        }
+        // เก็บไว้ใช้ชั่วคราวในเครื่องผู้ดูแล (หน้าเว็บนี้เท่านั้น)
+        localStorage.setItem('uploadedData', JSON.stringify(jsonData));
 
-        function createEventListTable(data) {
-            const eventCounts = {};
-            data.forEach(row => {
-                const event = row.Event_list || 'ไม่ระบุ';
-                eventCounts[event] = (eventCounts[event] || 0) + 1;
-            });
+        processData(jsonData);
 
-            const total = Object.values(eventCounts).reduce((sum, count) => sum + count, 0);
-            const sortedEvents = Object.entries(eventCounts).sort(([,a], [,b]) => b - a);
-            const maxCount = Math.max(...sortedEvents.map(([,c]) => c));
+        // หลังอัปสำเร็จ ซ่อน accordion และแสดงปุ่มดาวน์โหลด JSON เพื่ออัปเข้า repo
+        uploadContent.classList.add('hidden');
+        uploadArrow.classList.remove('rotate-180');
+        downloadBtn.classList.remove('hidden');
+      };
+      reader.readAsArrayBuffer(file);
+    }
 
-            // Update title with total count
-            document.getElementById('eventListTitle').textContent = `ตารางแสดงรายชื่อโรคและภัยสุขภาพ (N= ${total})`;
+    // NEW: ดาวน์โหลด JSON สำหรับอัปเข้า repo/data/data.json
+    function downloadJSON() {
+      const blob = new Blob([JSON.stringify(currentData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'data.json'; a.click();
+      URL.revokeObjectURL(url);
+    }
+    downloadBtn.addEventListener('click', downloadJSON);
 
-            const tableContainer = document.getElementById('eventListTable');
-            let tableHTML = `
-                <table class="min-w-full">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ลำดับ</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">รายชื่อโรคและภัยสุขภาพ</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">จำนวนเหตุการณ์</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ร้อยละ</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-            `;
+    // =======================
+    // Data processing helpers
+    // =======================
 
-            sortedEvents.forEach(([event, count], index) => {
-                const percentage = ((count / total) * 100).toFixed(1);
-                // Calculate green intensity based on count (darker for higher values)
-                const intensity = count / maxCount;
-                const greenValue = Math.round(255 - (intensity * 100)); // From 255 (light) to 155 (dark)
-                const backgroundColor = `rgba(34, ${greenValue}, 34, ${0.1 + (intensity * 0.4)})`; // Green gradient
-                
-                tableHTML += `
-                    <tr style="background-color: ${backgroundColor};">
-                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">${index + 1}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900">${event}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900 text-center font-bold">${count.toLocaleString()}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900 text-center font-medium">${percentage}%</td>
-                    </tr>
-                `;
-            });
+    function initializeSampleData() {
+      const sampleData = [
+        {Event_ID:'E001',Event_Group:'โรคติดต่อ',Event_list:'ไข้เลือดออก',Province_Name:'เชียงใหม่',District_Name:'เมือง',Subdistrict_Name:'ช้างเผือก',Place_Type:'โรงเรียน',Date_Received:'04-01-2567',Onset:'02-01-2567',case:25,Death:0,Priority:'สูง',Status:'กำลังติดตาม',Investigation:'ต้องสอบสวน'},
+        {Event_ID:'E002',Event_Group:'โรคไม่ติดต่อ',Event_list:'อาหารเป็นพิษ',Province_Name:'ลำปาง',District_Name:'เกาะคา',Subdistrict_Name:'เกาะคา',Place_Type:'ร้านอาหาร',Date_Received:'20-02-2567',Onset:'18-02-2567',case:12,Death:1,Priority:'กลาง',Status:'เสร็จสิ้น',Investigation:'สอบสวนแล้ว'},
+        {Event_ID:'E003',Event_Group:'อุบัติเหตุ',Event_list:'อุบัติเหตุจราจร',Province_Name:'ลำพูน',District_Name:'เมือง',Subdistrict_Name:'นายม',Place_Type:'ถนน',Date_Received:'10-03-2567',Onset:'10-03-2567',case:8,Death:2,Priority:'สูง',Status:'กำลังติดตาม',Investigation:'ไม่ต้องสอบสวน'},
+        {Event_ID:'E004',Event_Group:'โรคติดต่อ',Event_list:'โควิด-19',Province_Name:'แพร่',District_Name:'เมือง',Subdistrict_Name:'ในเวียง',Place_Type:'โรงพยาบาล',Date_Received:'05-04-2567',Onset:'02-04-2567',case:45,Death:3,Priority:'สูง',Status:'กำลังติดตาม',Investigation:'ต้องสอบสวน'},
+        {Event_ID:'E005',Event_Group:'สิ่งแวดล้อม',Event_list:'มลพิษทางอากาศ',Province_Name:'น่าน',District_Name:'เมือง',Subdistrict_Name:'ในเวียง',Place_Type:'โรงงาน',Date_Received:'12-05-2567',Onset:'10-05-2567',case:30,Death:0,Priority:'กลาง',Status:'รอดำเนินการ',Investigation:'ต้องสอบสวน'},
+        {Event_ID:'E006',Event_Group:'โรคติดต่อ',Event_list:'มือเท้าปาก',Province_Name:'เชียงราย',District_Name:'เมือง',Subdistrict_Name:'รอบเวียง',Place_Type:'ศูนย์เด็กเล็ก',Date_Received:'18-06-2567',Onset:'15-06-2567',case:18,Death:0,Priority:'กลาง',Status:'กำลังติดตาม',Investigation:'ต้องสอบสวน'},
+        {Event_ID:'E007',Event_Group:'โรคไม่ติดต่อ',Event_list:'พิษจากสารเคมี',Province_Name:'พะเยา',District_Name:'เมือง',Subdistrict_Name:'เวียง',Place_Type:'ชุมชน',Date_Received:'22-07-2567',Onset:'20-07-2567',case:15,Death:1,Priority:'สูง',Status:'เสร็จสิ้น',Investigation:'สอบสวนแล้ว'},
+        {Event_ID:'E008',Event_Group:'อุบัติเหตุ',Event_list:'ไฟไหม้',Province_Name:'เชียงใหม่',District_Name:'สันทราย',Subdistrict_Name:'สันทราย',Place_Type:'โรงงาน',Date_Received:'14-08-2567',Onset:'14-08-2567',case:22,Death:4,Priority:'สูง',Status:'กำลังติดตาม',Investigation:'ไม่ต้องสอบสวน'},
+        {Event_ID:'E009',Event_Group:'โรคติดต่อ',Event_list:'ไข้หวัดใหญ่',Province_Name:'ลำปาง',District_Name:'แม่เมาะ',Subdistrict_Name:'แม่เมาะ',Place_Type:'โรงเรียน',Date_Received:'08-09-2567',Onset:'05-09-2567',case:35,Death:0,Priority:'กลาง',Status:'กำลังติดตาม',Investigation:'ต้องสอบสวน'},
+        {Event_ID:'E010',Event_Group:'สิ่งแวดล้อม',Event_list:'น้ำเสีย',Province_Name:'ลำพูน',District_Name:'ป่าซาง',Subdistrict_Name:'ป่าซาง',Place_Type:'แหล่งน้ำ',Date_Received:'06-12-2567',Onset:'04-12-2567',case:28,Death:0,Priority:'กลาง',Status:'รอดำเนินการ',Investigation:'ต้องสอบสวน'}
+      ];
+      currentData = sampleData;
+      processData(sampleData);
+    }
 
-            // Add summary row
-            tableHTML += `
-                    <tr class="bg-blue-50 border-t-2 border-blue-200">
-                        <td class="px-4 py-3 text-sm font-bold text-blue-900" colspan="2">รวมทั้งหมด</td>
-                        <td class="px-4 py-3 text-sm font-bold text-blue-900 text-center">${total.toLocaleString()}</td>
-                        <td class="px-4 py-3 text-sm font-bold text-blue-900 text-center">100.0%</td>
-                    </tr>
-                    </tbody>
-                </table>
-            `;
+    function processData(data) {
+      const totalEvents = data.length;
+      const totalCases  = data.reduce((s, r) => s + (parseInt(r.case) || 0), 0);
+      const totalDeaths = data.reduce((s, r) => s + (parseInt(r.Death) || 0), 0);
+      const uniqueProvinces = [...new Set(data.map(r => r.Province_Name))].length;
+      document.getElementById('totalEvents').textContent   = totalEvents.toLocaleString();
+      document.getElementById('totalCases').textContent    = totalCases.toLocaleString();
+      document.getElementById('totalDeaths').textContent   = totalDeaths.toLocaleString();
+      document.getElementById('totalProvinces').textContent= uniqueProvinces;
 
-            tableContainer.innerHTML = tableHTML;
-        }
+      updateDateRange(data);
+      createEventListTable(data);
+      createEventGroupPieChart(data);
+      createProvinceChart(data);
+      createTimelineChart(data);
+      createPriorityChart(data);
+      createStatusChart(data);
+      createDataTable(data);
+    }
 
-        function createEventGroupPieChart(data) {
-            const groupCounts = {};
-            data.forEach(row => {
-                const group = row.Event_Group || 'ไม่ระบุ';
-                groupCounts[group] = (groupCounts[group] || 0) + 1;
-            });
+    function updateDateRange(data) {
+      if (fixedDateRange) {
+        document.getElementById('startDate').textContent = fixedDateRange.start;
+        document.getElementById('endDate').textContent   = fixedDateRange.end; return;
+      }
+      function parseThaiDate(dateStr) {
+        if (!dateStr) return null; let d, m, y;
+        if (dateStr.includes('-')) { const p = dateStr.split('-'); if (p.length===3){ d=+p[0]; m=+p[1]; y=+p[2]; if (y>2500) y-=543; return new Date(y,m-1,d);} }
+        if (dateStr.includes('/')) { const p = dateStr.split('/'); if (p.length===3){ d=+p[0]; m=+p[1]; y=+p[2]; if (y>2500) y-=543; return new Date(y,m-1,d);} }
+        const dt = new Date(dateStr); return isNaN(dt) ? null : dt;
+      }
+      const dates = data.map(r => parseThaiDate(r.Date_Received)).filter(dt => dt && !isNaN(dt));
+      if (dates.length>0){
+        const minDate = new Date(Math.min(...dates));
+        const maxDate = new Date(Math.max(...dates));
+        const months = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+        const fmt = d => `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()+543}`;
+        const startText = fmt(minDate); const endText = fmt(maxDate);
+        fixedDateRange = { start: startText, end: endText };
+        document.getElementById('startDate').textContent = startText;
+        document.getElementById('endDate').textContent   = endText;
+      }
+    }
 
-            const total = Object.values(groupCounts).reduce((sum, count) => sum + count, 0);
-            const sortedGroups = Object.entries(groupCounts).sort(([,a], [,b]) => b - a);
+    function updateCustomDateRange(startDateStr, endDateStr) {
+      const months = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+      const fmt = s => { const d=new Date(s); return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()+543}`; };
+      fixedDateRange = { start: fmt(startDateStr), end: fmt(endDateStr) };
+      document.getElementById('startDate').textContent = fixedDateRange.start;
+      document.getElementById('endDate').textContent   = fixedDateRange.end;
+    }
 
-            // Update title with total count
-            document.getElementById('eventGroupTitle').textContent = `สัดส่วนกลุ่มโรคและภัยสุขภาพ (N= ${total})`;
+    function createEventListTable(data) {
+      const counts = {}; data.forEach(r => { const e=r.Event_list||'ไม่ระบุ'; counts[e]=(counts[e]||0)+1; });
+      const total = Object.values(counts).reduce((s,c)=>s+c,0);
+      const sorted = Object.entries(counts).sort(([,a],[,b])=>b-a);
+      const maxCount = Math.max(...sorted.map(([,c])=>c));
+      document.getElementById('eventListTitle').textContent = `ตารางแสดงรายชื่อโรคและภัยสุขภาพ (N= ${total})`;
+      const container = document.getElementById('eventListTable');
+      let html = `<table class="min-w-full"><thead class="bg-gray-50"><tr>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ลำดับ</th>
+        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">รายชื่อโรคและภัยสุขภาพ</th>
+        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">จำนวนเหตุการณ์</th>
+        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ร้อยละ</th>
+      </tr></thead><tbody class="bg-white divide-y divide-gray-200">`;
+      sorted.forEach(([name,count], i) => {
+        const pct = ((count/total)*100).toFixed(1);
+        const intensity = count/maxCount; const g = Math.round(255-(intensity*100));
+        const bg = `rgba(34, ${g}, 34, ${0.1 + (intensity*0.4)})`;
+        html += `<tr style="background-color:${bg}">
+          <td class="px-4 py-3 text-sm text-gray-900 font-medium">${i+1}</td>
+          <td class="px-4 py-3 text-sm text-gray-900">${name}</td>
+          <td class="px-4 py-3 text-sm text-gray-900 text-center font-bold">${count.toLocaleString()}</td>
+          <td class="px-4 py-3 text-sm text-gray-900 text-center font-medium">${pct}%</td>
+        </tr>`;
+      });
+      html += `<tr class="bg-blue-50 border-t-2 border-blue-200">
+        <td class="px-4 py-3 text-sm font-bold text-blue-900" colspan="2">รวมทั้งหมด</td>
+        <td class="px-4 py-3 text-sm font-bold text-blue-900 text-center">${total.toLocaleString()}</td>
+        <td class="px-4 py-3 text-sm font-bold text-blue-900 text-center">100.0%</td>
+      </tr></tbody></table>`;
+      container.innerHTML = html;
+    }
 
-            const ctx = document.getElementById('eventGroupPieChart').getContext('2d');
-            if (chartInstances.eventGroupPie) chartInstances.eventGroupPie.destroy();
-            
-            chartInstances.eventGroupPie = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: sortedGroups.map(([name]) => name),
-                    datasets: [{
-                        data: sortedGroups.map(([,count]) => count),
-                        backgroundColor: [
-                            'rgba(59, 130, 246, 0.8)',   // Blue
-                            'rgba(16, 185, 129, 0.8)',   // Green  
-                            'rgba(245, 101, 101, 0.8)',  // Red
-                            'rgba(139, 92, 246, 0.8)',   // Purple
-                            'rgba(251, 191, 36, 0.8)',   // Yellow
-                            'rgba(236, 72, 153, 0.8)',   // Pink
-                            'rgba(20, 184, 166, 0.8)',   // Teal
-                            'rgba(249, 115, 22, 0.8)',   // Orange
-                            'rgba(107, 114, 128, 0.8)',  // Gray
-                            'rgba(34, 197, 94, 0.8)'     // Emerald
-                        ],
-                        borderColor: '#fff',
-                        borderWidth: 3,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                font: { family: 'Sarabun', size: 12 },
-                                padding: 15,
-                                usePointStyle: true,
-                                pointStyle: 'circle'
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const count = context.parsed;
-                                    const percentage = ((count / total) * 100).toFixed(1);
-                                    return `${context.label}: ${count.toLocaleString()} ครั้ง (${percentage}%)`;
-                                }
-                            },
-                            titleFont: { family: 'Sarabun', size: 14 },
-                            bodyFont: { family: 'Sarabun', size: 13 }
-                        }
-                    }
-                }
-            });
-        }
+    function createEventGroupPieChart(data) {
+      const groupCounts = {}; data.forEach(r => { const g=r.Event_Group||'ไม่ระบุ'; groupCounts[g]=(groupCounts[g]||0)+1; });
+      const total = Object.values(groupCounts).reduce((s,c)=>s+c,0);
+      const sorted = Object.entries(groupCounts).sort(([,a],[,b])=>b-a);
+      document.getElementById('eventGroupTitle').textContent = `สัดส่วนกลุ่มโรคและภัยสุขภาพ (N= ${total})`;
+      const ctx = document.getElementById('eventGroupPieChart').getContext('2d');
+      if (chartInstances.eventGroupPie) chartInstances.eventGroupPie.destroy();
+      chartInstances.eventGroupPie = new Chart(ctx, {
+        type: 'pie',
+        data: { labels: sorted.map(([n])=>n), datasets:[{ data: sorted.map(([,c])=>c), backgroundColor:[
+          'rgba(59, 130, 246, 0.8)','rgba(16, 185, 129, 0.8)','rgba(245, 101, 101, 0.8)','rgba(139, 92, 246, 0.8)','rgba(251, 191, 36, 0.8)','rgba(236, 72, 153, 0.8)','rgba(20, 184, 166, 0.8)','rgba(249, 115, 22, 0.8)','rgba(107, 114, 128, 0.8)','rgba(34, 197, 94, 0.8)'
+        ], borderColor:'#fff', borderWidth:3 }]},
+        options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ font:{family:'Sarabun',size:12}, padding:15, usePointStyle:true, pointStyle:'circle' }}, tooltip:{ callbacks:{ label:(ctx)=>{ const c=ctx.parsed; const p=((c/total)*100).toFixed(1); return `${ctx.label}: ${c.toLocaleString()} ครั้ง (${p}%)`; } }, titleFont:{family:'Sarabun',size:14}, bodyFont:{family:'Sarabun',size:13} } } }
+      });
+    }
 
-        function createProvinceChart(data) {
-            const provinceCounts = {};
-            data.forEach(row => {
-                const province = row.Province_Name || 'ไม่ระบุ';
-                provinceCounts[province] = (provinceCounts[province] || 0) + 1;
-            });
+    function createProvinceChart(data) {
+      const provinceCounts = {}; data.forEach(r=>{ const p=r.Province_Name||'ไม่ระบุ'; provinceCounts[p]=(provinceCounts[p]||0)+1; });
+      const total = Object.values(provinceCounts).reduce((s,c)=>s+c,0);
+      const sorted = Object.entries(provinceCounts).sort(([,a],[,b])=>b-a).slice(0,10);
+      document.getElementById('provinceTitle').textContent = `การกระจายตามจังหวัด (N= ${total})`;
+      const ctx = document.getElementById('provinceChart').getContext('2d');
+      if (chartInstances.province) chartInstances.province.destroy();
+      chartInstances.province = new Chart(ctx, {
+        type:'bar', data:{ labels: sorted.map(([n])=>n), datasets:[{ label:'จำนวนเหตุการณ์', data: sorted.map(([,c])=>c), backgroundColor:'rgba(16, 185, 129, 0.8)', borderColor:'rgba(16, 185, 129, 1)', borderWidth:2, borderRadius:8, borderSkipped:false }]},
+        options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(ctx)=>{ const c=ctx.parsed.x; const p=((c/total)*100).toFixed(1); return `${ctx.label}: ${c.toLocaleString()} ครั้ง (${p}%)`; } }, titleFont:{family:'Sarabun',size:14}, bodyFont:{family:'Sarabun',size:13} } }, scales:{ x:{ beginAtZero:true, ticks:{ font:{family:'Sarabun',size:12}, callback:(v)=>v.toLocaleString() }, grid:{ color:'rgba(0,0,0,0.1)'} }, y:{ ticks:{ font:{family:'Sarabun',size:12} }, grid:{ display:false } } } }
+      });
+    }
 
-            const total = Object.values(provinceCounts).reduce((sum, count) => sum + count, 0);
-            const sortedProvinces = Object.entries(provinceCounts)
-                .sort(([,a], [,b]) => b - a)
-                .slice(0, 10);
+    function createTimelineChart(data) {
+      const monthCounts = {}; let minY=Infinity, maxY=-Infinity;
+      function parseThaiDate(s){ if(!s) return null; let d,m,y; if(s.includes('-')){const p=s.split('-'); if(p.length===3){d=+p[0]; m=+p[1]; y=+p[2]; if(y>2500) y-=543; return new Date(y,m-1,d);} } if(s.includes('/')){const p=s.split('/'); if(p.length===3){d=+p[0]; m=+p[1]; y=+p[2]; if(y>2500) y-=543; return new Date(y,m-1,d);} } const dt=new Date(s); return isNaN(dt)?null:dt; }
+      data.forEach(r=>{ if(r.Date_Received){ const dt=parseThaiDate(r.Date_Received); if(dt && !isNaN(dt)){ const y=dt.getFullYear(); minY=Math.min(minY,y); maxY=Math.max(maxY,y); const key=`${y}-${String(dt.getMonth()+1).padStart(2,'0')}`; monthCounts[key]=(monthCounts[key]||0)+1; } } });
+      const allMonths=[]; if(minY!==Infinity && maxY!==-Infinity){ for(let y=minY; y<=maxY; y++){ for(let m=1; m<=12; m++){ const k=`${y}-${String(m).padStart(2,'0')}`; allMonths.push(k); if(!monthCounts[k]) monthCounts[k]=0; } } }
+      const total = data.length; document.getElementById('timelineTitle').textContent = `แนวโน้มเหตุการณ์ตามเวลา (N= ${total})`;
+      const sorted = allMonths.sort().map(k=>[k, monthCounts[k]||0]);
+      const labels = sorted.map(([k])=>{ const [y,m]=k.split('-'); const names=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']; return `${names[+m-1]} ${y}`; });
+      const dataPts = sorted.map(([k,c],i)=>({x:i,y:c}));
+      const ctx = document.getElementById('timelineChart').getContext('2d');
+      if (chartInstances.timeline) chartInstances.timeline.destroy();
+      chartInstances.timeline = new Chart(ctx, { type:'line', data:{ labels, datasets:[{ label:'จำนวนเหตุการณ์ต่อเดือน', data:dataPts, borderColor:'rgba(139, 92, 246, 1)', backgroundColor:'rgba(139, 92, 246, 0.1)', borderWidth:4, fill:true, tension:0.4, pointBackgroundColor:(c)=> c.parsed.y===0?'rgba(139,92,246,0.4)':'rgba(139,92,246,1)', pointBorderColor:'#fff', pointBorderWidth:3, pointRadius:(c)=> c.parsed.y===0?4:6, pointHoverRadius:8, segment:{ borderDash:(ctx)=>{ const p0=ctx.p0.parsed.y, p1=ctx.p1.parsed.y; return (p0===0 && p1===0)?[8,8]:undefined; }, borderColor:(ctx)=>{ const p0=ctx.p0.parsed.y, p1=ctx.p1.parsed.y; return (p0===0 && p1===0)?'rgba(139,92,246,0.4)':'rgba(139,92,246,1)'; } }, spanGaps:true }]}, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(ctx)=>`${ctx.label}: ${ctx.parsed.y} เหตุการณ์` }, titleFont:{family:'Sarabun',size:14}, bodyFont:{family:'Sarabun',size:13} } }, scales:{ y:{ beginAtZero:true, ticks:{ font:{family:'Sarabun',size:12}, stepSize:1, callback:(v)=>Number.isInteger(v)?v:'' }, grid:{ color:'rgba(0,0,0,0.1)'} }, x:{ ticks:{ font:{family:'Sarabun',size:12}, maxRotation:45 }, grid:{ color:'rgba(0,0,0,0.05)'} } } } });
+    }
 
-            // Update title with total count
-            document.getElementById('provinceTitle').textContent = `การกระจายตามจังหวัด (N= ${total})`;
+    function createPriorityChart(data) {
+      const counts = {}; data.forEach(r=>{ const k=r.Priority||'ไม่ระบุ'; counts[k]=(counts[k]||0)+1; });
+      const total = Object.values(counts).reduce((s,c)=>s+c,0);
+      const sorted = Object.entries(counts).sort(([,a],[,b])=>b-a);
+      document.getElementById('priorityTitle').textContent = `เกณฑ์ตรวจสอบข่าว (N= ${total})`;
+      const colorMap = { 'สูง':'rgba(239, 68, 68, 0.8)', 'กลาง':'rgba(245, 158, 11, 0.8)', 'ต่ำ':'rgba(34, 197, 94, 0.8)', 'ไม่ระบุ':'rgba(156, 163, 175, 0.8)' };
+      const ctx = document.getElementById('priorityChart').getContext('2d');
+      if (chartInstances.priority) chartInstances.priority.destroy();
+      chartInstances.priority = new Chart(ctx, { type:'bar', data:{ labels: sorted.map(()=> '●'), datasets:[{ label:'จำนวนเหตุการณ์', data: sorted.map(([,c])=>c), backgroundColor: sorted.map(([n])=>colorMap[n]||'rgba(59,130,246,0.8)'), borderColor: sorted.map(([n])=>(colorMap[n]||'rgba(59,130,246,0.8)').replace('0.8','1')), borderWidth:2, borderRadius:8, borderSkipped:false }]}, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:true, position:'bottom', labels:{ generateLabels:()=> sorted.map(([n],i)=>({ text:`${n} (${sorted[i][1]} ครั้ง)`, fillStyle: colorMap[n]||'rgba(59,130,246,0.8)', strokeStyle:(colorMap[n]||'rgba(59,130,246,0.8)').replace('0.8','1'), lineWidth:2, pointStyle:'rect' }), font:{family:'Sarabun',size:12}, padding:15, usePointStyle:true } }, tooltip:{ callbacks:{ title:(ctx)=> sorted[ctx[0].dataIndex][0], label:(ctx)=>{ const c=ctx.parsed.y; const p=((c/total)*100).toFixed(1); return `จำนวน: ${c.toLocaleString()} ครั้ง (${p}%)`; } }, titleFont:{family:'Sarabun',size:14}, bodyFont:{family:'Sarabun',size:13} } }, scales:{ y:{ beginAtZero:true, ticks:{ font:{family:'Sarabun',size:12}, callback:(v)=>v.toLocaleString() }, grid:{ color:'rgba(0,0,0,0.1)' } }, x:{ ticks:{ font:{family:'Sarabun',size:16,weight:'bold'}, color:(ctx)=>{ const n=sorted[ctx.index][0]; const c=colorMap[n]||'rgba(59,130,246,1)'; return c.replace('0.8','1'); } }, grid:{ display:false } } } });
+    }
 
-            const ctx = document.getElementById('provinceChart').getContext('2d');
-            if (chartInstances.province) chartInstances.province.destroy();
-            
-            chartInstances.province = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: sortedProvinces.map(([name]) => name),
-                    datasets: [{
-                        label: 'จำนวนเหตุการณ์',
-                        data: sortedProvinces.map(([,count]) => count),
-                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
-                        borderColor: 'rgba(16, 185, 129, 1)',
-                        borderWidth: 2,
-                        borderRadius: 8,
-                        borderSkipped: false,
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const count = context.parsed.x;
-                                    const percentage = ((count / total) * 100).toFixed(1);
-                                    return `${context.label}: ${count.toLocaleString()} ครั้ง (${percentage}%)`;
-                                }
-                            },
-                            titleFont: { family: 'Sarabun', size: 14 },
-                            bodyFont: { family: 'Sarabun', size: 13 }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { 
-                                font: { family: 'Sarabun', size: 12 },
-                                callback: function(value) {
-                                    return value.toLocaleString();
-                                }
-                            },
-                            grid: { color: 'rgba(0,0,0,0.1)' }
-                        },
-                        y: {
-                            ticks: { font: { family: 'Sarabun', size: 12 } },
-                            grid: { display: false }
-                        }
-                    }
-                }
-            });
-        }
+    function createStatusChart(data) {
+      const counts = {}; data.forEach(r=>{ const k=r.Status||'ไม่ระบุ'; counts[k]=(counts[k]||0)+1; });
+      const total = Object.values(counts).reduce((s,c)=>s+c,0);
+      const sorted = Object.entries(counts).sort(([,a],[,b])=>b-a);
+      document.getElementById('statusTitle').textContent = `สถานะการติดตาม (N= ${total})`;
+      const ctx = document.getElementById('statusChart').getContext('2d');
+      if (chartInstances.status) chartInstances.status.destroy();
+      chartInstances.status = new Chart(ctx, { type:'bar', data:{ labels: sorted.map(([n])=>n), datasets:[{ label:'จำนวนเหตุการณ์', data: sorted.map(([,c])=>c), backgroundColor:['rgba(20, 184, 166, 0.8)','rgba(251, 191, 36, 0.8)','rgba(239, 68, 68, 0.8)','rgba(139, 92, 246, 0.8)','rgba(156, 163, 175, 0.8)'], borderColor:['rgba(20, 184, 166, 1)','rgba(251, 191, 36, 1)','rgba(239, 68, 68, 1)','rgba(139, 92, 246, 1)','rgba(156, 163, 175, 1)'], borderWidth:2, borderRadius:8, borderSkipped:false }]}, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(ctx)=>{ const c=ctx.parsed.y; const p=((c/total)*100).toFixed(1); return `${ctx.label}: ${c.toLocaleString()} ครั้ง (${p}%)`; } }, titleFont:{family:'Sarabun',size:14}, bodyFont:{family:'Sarabun',size:13} } }, scales:{ y:{ beginAtZero:true, ticks:{ font:{family:'Sarabun',size:12}, callback:(v)=>v.toLocaleString() }, grid:{ color:'rgba(0,0,0,0.1)' } }, x:{ ticks:{ font:{family:'Sarabun',size:12}, maxRotation:45 }, grid:{ display:false } } } });
+    }
 
-        function createTimelineChart(data) {
-            const monthCounts = {};
-            
-            // Function to parse Thai Buddhist date format (dd-mm-yyyy) to JavaScript Date
-            function parseThaiDate(dateStr) {
-                if (!dateStr) return null;
-                
-                // Handle different date formats
-                let day, month, year;
-                
-                if (dateStr.includes('-')) {
-                    // Format: dd-mm-yyyy (Buddhist year)
-                    const parts = dateStr.split('-');
-                    if (parts.length === 3) {
-                        day = parseInt(parts[0]);
-                        month = parseInt(parts[1]);
-                        year = parseInt(parts[2]);
-                        
-                        // Convert Buddhist year to Christian year if needed
-                        if (year > 2500) {
-                            year = year - 543;
-                        }
-                        
-                        // Create date in dd/mm/yyyy format for processing
-                        return new Date(year, month - 1, day);
-                    }
-                } else if (dateStr.includes('/')) {
-                    // Format: dd/mm/yyyy
-                    const parts = dateStr.split('/');
-                    if (parts.length === 3) {
-                        day = parseInt(parts[0]);
-                        month = parseInt(parts[1]);
-                        year = parseInt(parts[2]);
-                        
-                        // Convert Buddhist year to Christian year if needed
-                        if (year > 2500) {
-                            year = year - 543;
-                        }
-                        
-                        return new Date(year, month - 1, day);
-                    }
-                } else {
-                    // Try standard date parsing as fallback
-                    const date = new Date(dateStr);
-                    return isNaN(date) ? null : date;
-                }
-                
-                return null;
-            }
-            
-            // Count valid dates only
-            let validDateCount = 0;
-            let minYear = Infinity;
-            let maxYear = -Infinity;
-            
-            data.forEach(row => {
-                if (row.Date_Received) {
-                    const date = parseThaiDate(row.Date_Received);
-                    if (date && !isNaN(date)) {
-                        validDateCount++;
-                        const year = date.getFullYear();
-                        minYear = Math.min(minYear, year);
-                        maxYear = Math.max(maxYear, year);
-                        const monthKey = `${year}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                        monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1;
-                    }
-                }
-            });
-
-            // Create complete month range for all years
-            const allMonths = [];
-            if (minYear !== Infinity && maxYear !== -Infinity) {
-                for (let year = minYear; year <= maxYear; year++) {
-                    for (let month = 1; month <= 12; month++) {
-                        const monthKey = `${year}-${String(month).padStart(2, '0')}`;
-                        allMonths.push(monthKey);
-                        // Initialize with 0 if no data exists
-                        if (!monthCounts[monthKey]) {
-                            monthCounts[monthKey] = 0;
-                        }
-                    }
-                }
-            }
-
-            // Use total data length for accurate count display
-            const total = data.length;
-            // Update title with total count
-            document.getElementById('timelineTitle').textContent = `แนวโน้มเหตุการณ์ตามเวลา (N= ${total})`;
-
-            const sortedMonths = allMonths.sort().map(monthKey => [monthKey, monthCounts[monthKey] || 0]);
-            const labels = sortedMonths.map(([monthKey]) => {
-                const [year, month] = monthKey.split('-');
-                const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
-                                  'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-                return `${monthNames[parseInt(month) - 1]} ${year}`;
-            });
-
-            // Create single dataset with all data points (including zeros)
-            const allData = sortedMonths.map(([monthKey, count], index) => ({
-                x: index,
-                y: count
-            }));
-
-            const ctx = document.getElementById('timelineChart').getContext('2d');
-            if (chartInstances.timeline) chartInstances.timeline.destroy();
-            
-            chartInstances.timeline = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'จำนวนเหตุการณ์ต่อเดือน',
-                            data: allData,
-                            borderColor: 'rgba(139, 92, 246, 1)',
-                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                            borderWidth: 4,
-                            fill: true,
-                            tension: 0.4,
-                            pointBackgroundColor: function(context) {
-                                const value = context.parsed.y;
-                                return value === 0 ? 'rgba(139, 92, 246, 0.4)' : 'rgba(139, 92, 246, 1)';
-                            },
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 3,
-                            pointRadius: function(context) {
-                                const value = context.parsed.y;
-                                return value === 0 ? 4 : 6;
-                            },
-                            pointHoverRadius: 8,
-                            segment: {
-                                borderDash: function(ctx) {
-                                    // Create dashed line for segments where both points are zero
-                                    const p0 = ctx.p0.parsed.y;
-                                    const p1 = ctx.p1.parsed.y;
-                                    return (p0 === 0 && p1 === 0) ? [8, 8] : undefined;
-                                },
-                                borderColor: function(ctx) {
-                                    // Make line lighter for zero-value segments
-                                    const p0 = ctx.p0.parsed.y;
-                                    const p1 = ctx.p1.parsed.y;
-                                    return (p0 === 0 && p1 === 0) ? 'rgba(139, 92, 246, 0.4)' : 'rgba(139, 92, 246, 1)';
-                                }
-                            },
-                            spanGaps: true
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const count = context.parsed.y;
-                                    return `${context.label}: ${count} เหตุการณ์`;
-                                }
-                            },
-                            titleFont: { family: 'Sarabun', size: 14 },
-                            bodyFont: { family: 'Sarabun', size: 13 }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { 
-                                font: { family: 'Sarabun', size: 12 },
-                                stepSize: 1,
-                                callback: function(value) {
-                                    return Number.isInteger(value) ? value : '';
-                                }
-                            },
-                            grid: { color: 'rgba(0,0,0,0.1)' }
-                        },
-                        x: {
-                            ticks: { 
-                                font: { family: 'Sarabun', size: 12 },
-                                maxRotation: 45
-                            },
-                            grid: { color: 'rgba(0,0,0,0.05)' }
-                        }
-                    }
-                }
-            });
-        }
-
-        function createPriorityChart(data) {
-            const priorityCounts = {};
-            data.forEach(row => {
-                const priority = row.Priority || 'ไม่ระบุ';
-                priorityCounts[priority] = (priorityCounts[priority] || 0) + 1;
-            });
-
-            const total = Object.values(priorityCounts).reduce((sum, count) => sum + count, 0);
-            const sortedPriorities = Object.entries(priorityCounts).sort(([,a], [,b]) => b - a);
-
-            // Update title with total count
-            document.getElementById('priorityTitle').textContent = `เกณฑ์ตรวจสอบข่าว (N= ${total})`;
-
-            // Create color mapping for priorities
-            const colorMap = {
-                'สูง': 'rgba(239, 68, 68, 0.8)',      // Red
-                'กลาง': 'rgba(245, 158, 11, 0.8)',    // Orange
-                'ต่ำ': 'rgba(34, 197, 94, 0.8)',      // Green
-                'ไม่ระบุ': 'rgba(156, 163, 175, 0.8)' // Gray
-            };
-
-            const ctx = document.getElementById('priorityChart').getContext('2d');
-            if (chartInstances.priority) chartInstances.priority.destroy();
-            
-            chartInstances.priority = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: sortedPriorities.map(([name]) => '●'), // Use colored dots instead of text
-                    datasets: [{
-                        label: 'จำนวนเหตุการณ์',
-                        data: sortedPriorities.map(([,count]) => count),
-                        backgroundColor: sortedPriorities.map(([name]) => colorMap[name] || 'rgba(59, 130, 246, 0.8)'),
-                        borderColor: sortedPriorities.map(([name]) => colorMap[name]?.replace('0.8', '1') || 'rgba(59, 130, 246, 1)'),
-                        borderWidth: 2,
-                        borderRadius: 8,
-                        borderSkipped: false,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'bottom',
-                            labels: {
-                                generateLabels: function(chart) {
-                                    return sortedPriorities.map(([name], index) => ({
-                                        text: `${name} (${sortedPriorities[index][1]} ครั้ง)`,
-                                        fillStyle: colorMap[name] || 'rgba(59, 130, 246, 0.8)',
-                                        strokeStyle: colorMap[name]?.replace('0.8', '1') || 'rgba(59, 130, 246, 1)',
-                                        lineWidth: 2,
-                                        pointStyle: 'rect'
-                                    }));
-                                },
-                                font: { family: 'Sarabun', size: 12 },
-                                padding: 15,
-                                usePointStyle: true
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                title: function(context) {
-                                    const index = context[0].dataIndex;
-                                    return sortedPriorities[index][0];
-                                },
-                                label: function(context) {
-                                    const count = context.parsed.y;
-                                    const percentage = ((count / total) * 100).toFixed(1);
-                                    return `จำนวน: ${count.toLocaleString()} ครั้ง (${percentage}%)`;
-                                }
-                            },
-                            titleFont: { family: 'Sarabun', size: 14 },
-                            bodyFont: { family: 'Sarabun', size: 13 }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { 
-                                font: { family: 'Sarabun', size: 12 },
-                                callback: function(value) {
-                                    return value.toLocaleString();
-                                }
-                            },
-                            grid: { color: 'rgba(0,0,0,0.1)' }
-                        },
-                        x: {
-                            ticks: { 
-                                font: { family: 'Sarabun', size: 16, weight: 'bold' },
-                                color: function(context) {
-                                    const index = context.index;
-                                    const name = sortedPriorities[index][0];
-                                    return colorMap[name]?.replace('0.8', '1') || 'rgba(59, 130, 246, 1)';
-                                }
-                            },
-                            grid: { display: false }
-                        }
-                    }
-                }
-            });
-        }
-
-        function createStatusChart(data) {
-            const statusCounts = {};
-            data.forEach(row => {
-                const status = row.Status || 'ไม่ระบุ';
-                statusCounts[status] = (statusCounts[status] || 0) + 1;
-            });
-
-            const total = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
-            const sortedStatuses = Object.entries(statusCounts).sort(([,a], [,b]) => b - a);
-
-            // Update title with total count
-            document.getElementById('statusTitle').textContent = `สถานะการติดตาม (N= ${total})`;
-
-            const ctx = document.getElementById('statusChart').getContext('2d');
-            if (chartInstances.status) chartInstances.status.destroy();
-            
-            chartInstances.status = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: sortedStatuses.map(([name]) => name),
-                    datasets: [{
-                        label: 'จำนวนเหตุการณ์',
-                        data: sortedStatuses.map(([,count]) => count),
-                        backgroundColor: [
-                            'rgba(20, 184, 166, 0.8)',  // Teal - Completed
-                            'rgba(251, 191, 36, 0.8)',  // Yellow - In progress
-                            'rgba(239, 68, 68, 0.8)',   // Red - Pending
-                            'rgba(139, 92, 246, 0.8)',  // Purple - Under review
-                            'rgba(156, 163, 175, 0.8)'  // Gray - Unknown
-                        ],
-                        borderColor: [
-                            'rgba(20, 184, 166, 1)',
-                            'rgba(251, 191, 36, 1)',
-                            'rgba(239, 68, 68, 1)',
-                            'rgba(139, 92, 246, 1)',
-                            'rgba(156, 163, 175, 1)'
-                        ],
-                        borderWidth: 2,
-                        borderRadius: 8,
-                        borderSkipped: false,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const count = context.parsed.y;
-                                    const percentage = ((count / total) * 100).toFixed(1);
-                                    return `${context.label}: ${count.toLocaleString()} ครั้ง (${percentage}%)`;
-                                }
-                            },
-                            titleFont: { family: 'Sarabun', size: 14 },
-                            bodyFont: { family: 'Sarabun', size: 13 }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { 
-                                font: { family: 'Sarabun', size: 12 },
-                                callback: function(value) {
-                                    return value.toLocaleString();
-                                }
-                            },
-                            grid: { color: 'rgba(0,0,0,0.1)' }
-                        },
-                        x: {
-                            ticks: { 
-                                font: { family: 'Sarabun', size: 12 },
-                                maxRotation: 45
-                            },
-                            grid: { display: false }
-                        }
-                    }
-                }
-            });
-        }
-
-        function createDataTable(data) {
-            const table = document.getElementById('dataTable');
-            const header = document.getElementById('tableHeader');
-            const body = document.getElementById('tableBody');
-
-            // Clear existing content
-            header.innerHTML = '';
-            body.innerHTML = '';
-
-            if (data.length === 0) return;
-
-            // Create header
-            const columns = Object.keys(data[0]);
-            columns.forEach(col => {
-                const th = document.createElement('th');
-                th.className = 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b';
-                th.textContent = col;
-                header.appendChild(th);
-            });
-
-            // Create rows (show last 10 rows)
-            data.slice(-10).reverse().forEach((row, index) => {
-                const tr = document.createElement('tr');
-                tr.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
-                
-                columns.forEach(col => {
-                    const td = document.createElement('td');
-                    td.className = 'px-4 py-3 text-sm text-gray-900 border-b';
-                    td.textContent = row[col] || '-';
-                    tr.appendChild(td);
-                });
-                
-                body.appendChild(tr);
-            });
-
-            if (data.length > 10) {
-                const tr = document.createElement('tr');
-                const td = document.createElement('td');
-                td.colSpan = columns.length;
-                td.className = 'px-4 py-3 text-center text-sm text-gray-500 italic';
-                td.textContent = `แสดง 10 รายการล่าสุดจากทั้งหมด ${data.length} แถว`;
-                tr.appendChild(td);
-                body.appendChild(tr);
-            }
-        }
-    </script>
+    function createDataTable(data) {
+      const header = document.getElementById('tableHeader');
+      const body   = document.getElementById('tableBody');
+      header.innerHTML = ''; body.innerHTML = '';
+      if (!data.length) return;
+      const cols = Object.keys(data[0]);
+      cols.forEach(c => { const th=document.createElement('th'); th.className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b'; th.textContent=c; header.appendChild(th); });
+      data.slice(-10).reverse().forEach((row,i)=>{ const tr=document.createElement('tr'); tr.className = i%2===0 ? 'bg-white' : 'bg-gray-50'; cols.forEach(c=>{ const td=document.createElement('td'); td.className='px-4 py-3 text-sm text-gray-900 border-b'; td.textContent = row[c] ?? '-'; tr.appendChild(td); }); body.appendChild(tr); });
+      if (data.length>10){ const tr=document.createElement('tr'); const td=document.createElement('td'); td.colSpan=cols.length; td.className='px-4 py-3 text-center text-sm text-gray-500 italic'; td.textContent=`แสดง 10 รายการล่าสุดจากทั้งหมด ${data.length} แถว`; tr.appendChild(td); body.appendChild(tr); }
+    }
+  </script>
+  <!-- หมายเหตุ: ไม่มีสคริปต์ Cloudflare /cdn-cgi ที่ท้ายไฟล์แล้ว เพื่อให้ทำงานกับ GitHub Pages ได้ -->
 </body>
 </html>
