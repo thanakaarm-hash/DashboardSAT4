@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard เฝ้าระวังสถานการณ์สุขภาพ - เขตสุขภาพที่ 4</title>
-  <!-- CDN libraries -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -19,7 +18,6 @@
   </style>
 </head>
 <body class="bg-gray-50">
-  <!-- Header -->
   <header class="gradient-bg text-white py-6 shadow-lg">
     <div class="container mx-auto px-6">
       <h1 class="text-3xl font-bold text-center">🏥 Dashboard แสดงผลข้อมูลเฝ้าระวังเหตุการณ์โรคและภัยสุขภาพ</h1>
@@ -32,7 +30,6 @@
   </header>
 
   <div class="container mx-auto px-6 py-8">
-    <!-- Summary Cards -->
     <div id="summaryCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <div class="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 rounded-xl p-6 text-white card-shadow transform hover:scale-105 transition-transform">
         <div class="flex items-center justify-between">
@@ -72,7 +69,6 @@
       </div>
     </div>
 
-    <!-- Charts Section -->
     <div id="chartsSection">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <div class="bg-white rounded-xl card-shadow p-8 border-l-4 border-indigo-500">
@@ -106,7 +102,6 @@
         </div>
       </div>
 
-      <!-- Province Chart -->
       <div class="bg-white rounded-xl card-shadow p-8 mb-8 border-l-4 border-green-500">
         <div class="flex items-center mb-6">
           <div class="bg-green-100 p-3 rounded-lg mr-4">
@@ -122,7 +117,6 @@
         <div class="h-96"><canvas id="provinceChart"></canvas></div>
       </div>
 
-      <!-- Timeline Chart -->
       <div class="bg-white rounded-xl card-shadow p-8 mb-8 border-l-4 border-purple-500">
         <div class="flex items-center mb-6">
           <div class="bg-purple-100 p-3 rounded-lg mr-4">
@@ -138,7 +132,6 @@
         <div class="h-96"><canvas id="timelineChart"></canvas></div>
       </div>
 
-      <!-- Priority & Status Charts -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div class="bg-white rounded-xl card-shadow p-8 border-l-4 border-orange-500">
           <div class="flex items-center mb-6">
@@ -172,7 +165,6 @@
       </div>
     </div>
 
-    <!-- Data Table -->
     <div id="dataTableSection" class="bg-white rounded-xl card-shadow p-8 mt-8 border-l-4 border-gray-500">
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center">
@@ -195,7 +187,6 @@
       </div>
     </div>
 
-    <!-- Upload Section (Dropdown) -->
     <div class="mt-8">
       <div class="bg-white rounded-xl card-shadow border-l-4 border-indigo-500 overflow-hidden">
         <button id="uploadToggle" class="w-full p-6 text-left hover:bg-gray-50 transition-colors flex items-center justify-between">
@@ -216,7 +207,6 @@
         </button>
 
         <div id="uploadContent" class="hidden border-t border-gray-200 p-8">
-          <!-- Authentication Form -->
           <div id="authForm" class="mb-6">
             <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
               <div class="flex items-center">
@@ -240,7 +230,6 @@
             <div id="authError" class="hidden mt-2 text-red-600 text-sm"></div>
           </div>
 
-          <!-- Date Range Form -->
           <div id="dateRangeForm" class="mb-6 hidden">
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
               <div class="flex items-center mb-3">
@@ -263,7 +252,6 @@
             </div>
           </div>
 
-          <!-- Upload Area (Hidden initially) -->
           <div id="uploadArea" class="upload-area rounded-lg p-12 text-center cursor-pointer hidden">
             <div class="flex flex-col items-center">
               <svg class="w-16 h-16 text-indigo-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -282,7 +270,6 @@
             </div>
           </div>
 
-          <!-- ปุ่มดาวน์โหลด JSON สำหรับอัปขึ้น repo/data/data.json -->
           <button id="downloadJsonBtn" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-medium hidden">
             ดาวน์โหลดไฟล์ JSON (สำหรับอัปขึ้น data/data.json)
           </button>
@@ -535,7 +522,6 @@
       const counts = {}; data.forEach(r => { const e=r.Event_list||'ไม่ระบุ'; counts[e]=(counts[e]||0)+1; });
       const total = Object.values(counts).reduce((s,c)=>s+c,0);
       const sorted = Object.entries(counts).sort(([,a],[,b])=>b-a);
-      const maxCount = Math.max(...sorted.map(([,c])=>c));
       document.getElementById('eventListTitle').textContent = `ตารางแสดงรายชื่อโรคและภัยสุขภาพ (N= ${total})`;
       const container = document.getElementById('eventListTable');
       let html = `<table class="min-w-full"><thead class=\"bg-gray-50\"><tr>
@@ -638,5 +624,5 @@
       if (data.length>10){ const tr=document.createElement('tr'); const td=document.createElement('td'); td.colSpan=cols.length; td.className='px-4 py-3 text-center text-sm text-gray-500 italic'; td.textContent=`แสดง 10 รายการล่าสุดจากทั้งหมด ${data.length} แถว`; tr.appendChild(td); body.appendChild(tr); }
     }
   </script>
-  <!-- หมายเหตุ: ไม่มีสคริปต์ Cloudflare /cdn-cgi ที่ท้ายไฟล์แล้ว เพื่อให้ทำงานกับ GitHub Pages ได้ -->
-</body
+  </body>
+</html>
