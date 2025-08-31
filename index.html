@@ -382,40 +382,41 @@
         });
 
         // ⭐️ ฟังก์ชันโหลดข้อมูลส่วนกลางที่สร้างขึ้นใหม่
-        function loadSharedData() {
-            const storedStartDate = localStorage.getItem('customStartDate');
-            const storedEndDate = localStorage.getItem('customEndDate');
-            const storedData = localStorage.getItem('uploadedData');
-            
-            if (storedStartDate && storedEndDate) {
-                document.getElementById('customStartDate').value = storedStartDate;
-                document.getElementById('customEndDate').value = storedEndDate;
-                updateCustomDateRange(storedStartDate, storedEndDate);
-            }
-            
-            if (storedData) {
-                try {
-                    const parsedData = JSON.parse(storedData);
-                    currentData = parsedData;
-                    processData(parsedData);
-                    
-                    isAuthenticated = false;
-                    authForm.classList.remove('hidden');
-                    document.getElementById('dateRangeForm').classList.add('hidden');
-                    uploadContainer.classList.add('hidden');
-                    document.getElementById('fileInfo').classList.add('hidden');
-                    
-                    document.getElementById('username').value = '';
-                    document.getElementById('password').value = '';
-                    document.getElementById('authError').classList.add('hidden');
-                } catch (e) {
-                    console.error('Error loading stored data:', e);
-                    initializeSampleData();
-                }
-            } else {
-                initializeSampleData();
-            }
-        }
+        async function loadSharedData() {
+try {
+    const url = './data/dashboard_data.json?cacheBust=' + Date.now();
+    const res = await fetch(url, { cache: 'no-store' });
+    console.log('[loadSharedData] fetch', url, res.status);
+    if (res.ok) {
+      const json = await res.json();
+      if (Array.isArray(json)) {
+        currentData = json;
+        processData(json);
+        const s = localStorage.getItem('customStartDate');
+        const e = localStorage.getItem('customEndDate');
+        if (s && e && typeof updateCustomDateRange==='function') updateCustomDateRange(s, e);
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('[loadSharedData] shared JSON load failed:', err);
+  }
+  // Fallbacks:
+  try {
+    const s = localStorage.getItem('customStartDate');
+    const e = localStorage.getItem('customEndDate');
+    if (s && e && typeof updateCustomDateRange==='function') updateCustomDateRange(s, e);
+    const stored = localStorage.getItem('uploadedData');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      currentData = parsed;
+      processData(parsed);
+      return;
+    }
+  } catch (e) { console.warn('localStorage parse fail', e); }
+  if (typeof initializeSampleData==='function') initializeSampleData();
+}
+
         
         // ⭐️ เรียกใช้ฟังก์ชัน loadSharedData() เมื่อ DOM โหลดเสร็จ
         document.addEventListener('DOMContentLoaded', loadSharedData);
@@ -1263,244 +1264,119 @@
             }
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'977bf21c4437a1ae',t:'MTc1NjYzNzIwNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
-<!-- === SUN Export & Chart Title Utilities (auto-injected) === -->
+
+<!-- SUN minimal exports & chart title utilities -->
 <script>
 (function(){
   function ensureXLSX(cb){
     if (window.XLSX && XLSX.utils && XLSX.writeFile) { cb(); return; }
     var s=document.createElement('script');
     s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
-    s.onload=cb;
-    document.head.appendChild(s);
+    s.onload=cb; document.head.appendChild(s);
   }
-  function SUN_getChartTitle(canvas){
-    let title = canvas.getAttribute('data-title') || canvas.getAttribute('aria-label') || '';
-    let card = canvas.closest('.bg-white');
-    if (card){
-      let h = card.querySelector('h1,h2,h3,.text-2xl,.text-xl,.text-lg');
-      if (h && h.textContent) title = h.textContent.trim();
-    }
-    if (!title) title = (canvas.id || 'Chart');
-    return title;
+  function titleOf(canvas){
+    let t = canvas.getAttribute('data-title') || canvas.getAttribute('aria-label') || '';
+    const card = canvas.closest('.bg-white');
+    const h = card && card.querySelector('h1,h2,h3,.text-2xl,.text-xl,.text-lg');
+    if (h && h.textContent) t = h.textContent.trim();
+    return t || (canvas.id || 'Chart');
   }
-  function SUN_composeCanvasWithTitle(canvas, title){
-    const dpr = window.devicePixelRatio || 1;
-    const pad = 12;
-    const titlePx = 18;
-    const titleArea = Math.round((titlePx + pad*2) * dpr);
-    const srcW = canvas.width;
-    const srcH = canvas.height;
-    const out = document.createElement('canvas');
-    out.width  = srcW;
-    out.height = srcH + titleArea;
-    const ctx = out.getContext('2d');
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0,0,out.width,out.height);
-    ctx.fillStyle = '#111827';
-    ctx.font = `${Math.round(titlePx*dpr)}px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif`;
-    ctx.textBaseline = 'top';
-    ctx.textAlign = 'left';
-    ctx.fillText(title, Math.round(pad*dpr), Math.round(pad*dpr));
-    ctx.drawImage(canvas, 0, titleArea);
-    return out;
+  function composeWithTitle(canvas, t){
+    const dpr = window.devicePixelRatio || 1, pad=12, tp=18, titleArea=Math.round((tp+pad*2)*dpr);
+    const out=document.createElement('canvas'); out.width=canvas.width; out.height=canvas.height+titleArea;
+    const c=out.getContext('2d'); c.fillStyle='#fff'; c.fillRect(0,0,out.width,out.height);
+    c.fillStyle='#111827'; c.font=`${Math.round(tp*dpr)}px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif`;
+    c.textBaseline='top'; c.textAlign='left'; c.fillText(t, Math.round(pad*dpr), Math.round(pad*dpr));
+    c.drawImage(canvas, 0, titleArea); return out;
   }
-  function SUN_downloadCanvasPNGWithTitle(canvas, filename){
+  function downloadPNGWithTitle(canvas, fname){
+    const out = composeWithTitle(canvas, titleOf(canvas));
+    const a=document.createElement('a'); a.href=out.toDataURL('image/png'); a.download=fname||((canvas.id||'chart')+'.png');
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+  async function copyPNGWithTitle(canvas){
     try{
-      const title = SUN_getChartTitle(canvas);
-      const composed = SUN_composeCanvasWithTitle(canvas, title);
-      const link = document.createElement('a');
-      link.href = composed.toDataURL('image/png');
-      link.download = filename || ((canvas.id||'chart') + '.png');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      if (!navigator.clipboard || typeof ClipboardItem==='undefined') throw new Error('no clipboard api');
+      const out = composeWithTitle(canvas, titleOf(canvas));
+      const blob = await new Promise(r=>out.toBlob(r,'image/png'));
+      await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
+      alert('คัดลอกภาพกราฟ (รวมชื่อ) แล้ว ✅');
     }catch(e){
-      console.error('PNG with title error:', e);
-      alert('ไม่สามารถดาวน์โหลดภาพกราฟได้');
+      downloadPNGWithTitle(canvas, (canvas.id||'chart')+'.png');
     }
   }
-  async function SUN_copyCanvasToClipboardWithTitle(canvas){
-    try{
-      if (!navigator.clipboard || typeof ClipboardItem === 'undefined') throw new Error('Clipboard API not available');
-      const title = SUN_getChartTitle(canvas);
-      const composed = SUN_composeCanvasWithTitle(canvas, title);
-      const blob = await new Promise(resolve => composed.toBlob(resolve, 'image/png'));
-      if (!blob) throw new Error('toBlob failed');
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      alert('คัดลอกภาพกราฟ (รวมชื่อกราฟ) ไปยังคลิปบอร์ดแล้ว ✅');
-    }catch(e){
-      console.warn('copyCanvasWithTitle:', e);
-      SUN_downloadCanvasPNGWithTitle(canvas, (canvas.id||'chart') + '.png');
-      alert('เบราว์เซอร์ไม่รองรับการคัดลอกภาพอัตโนมัติ — จึงดาวน์โหลด PNG ให้แทน');
-    }
+  function addChartToolbar(id){
+    const cv=document.getElementById(id); if(!cv) return;
+    const card=cv.closest('.bg-white.rounded-xl.card-shadow')||cv.closest('.bg-white')||cv.parentElement;
+    if(!card) return;
+    if(card.querySelector('[data-sun-toolbar="'+id+'"]')) return;
+    const header = card.querySelector('.flex.items-center.mb-6, .flex.items-center.justify-between');
+    const bar=document.createElement('div'); bar.className='ml-auto flex items-center gap-2'; bar.setAttribute('data-sun-toolbar', id);
+    const b1=document.createElement('button'); b1.type='button'; b1.className='px-3 py-1.5 text-xs rounded-lg bg-gray-100 hover:bg-gray-200'; b1.textContent='คัดลอกกราฟ';
+    b1.addEventListener('click',()=>copyPNGWithTitle(cv));
+    const b2=document.createElement('button'); b2.type='button'; b2.className='px-3 py-1.5 text-xs rounded-lg bg-gray-100 hover:bg-gray-200'; b2.textContent='ดาวน์โหลด PNG';
+    b2.addEventListener('click',()=>downloadPNGWithTitle(cv, id+'.png'));
+    bar.appendChild(b1); bar.appendChild(b2);
+    (header||card).appendChild(bar);
   }
-  function SUN_addToolbarForChart(canvasId){
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-    let card = canvas.closest('.bg-white.rounded-xl.card-shadow') || canvas.closest('.bg-white');
-    let header = card ? card.querySelector('.flex.items-center.mb-6, .flex.items-center.justify-between') : null;
-    const bar = document.createElement('div');
-    bar.className = 'ml-auto flex items-center gap-2';
-    const btnCopy = document.createElement('button');
-    btnCopy.type = 'button';
-    btnCopy.className = 'px-3 py-1.5 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 transition';
-    btnCopy.textContent = 'คัดลอกกราฟ';
-    btnCopy.addEventListener('click', () => SUN_copyCanvasToClipboardWithTitle(canvas));
-    const btnPNG = document.createElement('button');
-    btnPNG.type = 'button';
-    btnPNG.className = 'px-3 py-1.5 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 transition';
-    btnPNG.textContent = 'ดาวน์โหลด PNG';
-    btnPNG.addEventListener('click', () => SUN_downloadCanvasPNGWithTitle(canvas, (canvas.id||'chart') + '.png'));
-    bar.appendChild(btnCopy);
-    bar.appendChild(btnPNG);
-    if (header) header.appendChild(bar);
-    else if (canvas.parentElement) canvas.parentElement.insertBefore(bar, canvas);
+  function injectChartToolbars(){
+    ['timelineChart','eventGroupPieChart','provinceChart','priorityChart','statusChart'].forEach(addChartToolbar);
   }
-  function SUN_injectChartToolbars(){
-    ['timelineChart','eventGroupPieChart','provinceChart','priorityChart','statusChart'].forEach(SUN_addToolbarForChart);
-  }
-  function SUN_exportTableToCSV(tableElement, filename){
-    const rows = tableElement.querySelectorAll('tr');
-    const csv = [];
-    for (const tr of rows){
-      const cells = tr.querySelectorAll('th,td');
-      const row = [];
-      for (const cell of cells){
-        let text = (cell.innerText || '').replace(/\r?\n|\r/g, ' ').trim();
-        text = '\"' + text.replace(/\"/g, '\"\"') + '\"';
-        row.push(text);
-      }
-      if (row.length) csv.push(row.join(','));
-    }
-    const blob = new Blob(['\ufeff' + csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename || 'table.csv';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-  function SUN_exportTableToExcel(tableElement, filename){
+  function exportTableToExcel(tbl, filename){
     ensureXLSX(function(){
       try{
-        if (window.XLSX && XLSX.utils && XLSX.writeFile){
-          const wb = XLSX.utils.table_to_book(tableElement, { sheet: 'Table' });
-          XLSX.writeFile(wb, filename || 'table.xlsx');
-        }else{
-          throw new Error('XLSX not available after load');
-        }
-      }catch(e){
-        console.warn('table->excel failed; fallback CSV:', e);
-        SUN_exportTableToCSV(tableElement, (filename || 'table.xlsx').replace(/\.xlsx$/i, '.csv'));
-      }
+        const wb = XLSX.utils.table_to_book(tbl, {sheet:'Table'});
+        XLSX.writeFile(wb, filename||'table.xlsx');
+      }catch(e){ alert('ไม่สามารถส่งออก Excel ได้'); }
     });
   }
-  function SUN_exportCurrentDataToExcel(filename){
+  function exportCurrentDataToExcel(filename){
     ensureXLSX(function(){
       try{
-        if (!Array.isArray(window.currentData) || window.currentData.length === 0){
-          alert('ไม่มีข้อมูลให้ดาวน์โหลด');
-          return;
-        }
-        if (window.XLSX && XLSX.utils && XLSX.writeFile){
-          const ws = XLSX.utils.json_to_sheet(window.currentData);
-          const wb = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(wb, ws, 'Data');
-          XLSX.writeFile(wb, filename || 'dashboard_data.xlsx');
-        }else{
-          const cols = Object.keys(window.currentData[0]);
-          const lines = [cols.join(',')];
-          window.currentData.forEach(row => {
-            const line = cols.map(k => {
-              let v = row[k]; if (v == null) v = '';
-              v = String(v).replace(/\"/g, '\"\"');
-              return '\"' + v + '\"';
-            }).join(',');
-            lines.push(line);
-          });
-          const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(blob);
-          link.download = (filename || 'dashboard_data') + '.csv';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
-      }catch(e){
-        console.error('exportCurrentDataToExcel error:', e);
-        alert('ไม่สามารถดาวน์โหลดข้อมูลทั้งหมดได้');
-      }
+        if(!Array.isArray(window.currentData)||!window.currentData.length){ alert('ไม่มีข้อมูล'); return; }
+        const ws=XLSX.utils.json_to_sheet(window.currentData);
+        const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Data'); XLSX.writeFile(wb, filename||'dashboard_data.xlsx');
+      }catch(e){ alert('ไม่สามารถส่งออก Excel ได้'); }
     });
   }
-  function SUN_injectMainTableButtons(){
-    const headerBar = document.querySelector('#dataTableSection .flex.items-center.justify-between');
-    const tbl = document.getElementById('dataTable');
-    if (!headerBar || !tbl) return;
-    const container = document.createElement('div');
-    container.className = 'flex items-center gap-2';
-    const btnCsv = document.createElement('button');
-    btnCsv.type = 'button';
-    btnCsv.className = 'px-3 py-1.5 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 transition';
-    btnCsv.textContent = 'ดาวน์โหลดตาราง (CSV)';
-    btnCsv.addEventListener('click', () => SUN_exportTableToCSV(tbl, 'table_display.csv'));
-    const btnXlsx = document.createElement('button');
-    btnXlsx.type = 'button';
-    btnXlsx.className = 'px-3 py-1.5 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 transition';
-    btnXlsx.textContent = 'ดาวน์โหลดตาราง (Excel)';
-    btnXlsx.addEventListener('click', () => SUN_exportTableToExcel(tbl, 'table_display.xlsx'));
-    const btnAll = document.createElement('button');
-    btnAll.type = 'button';
-    btnAll.className = 'px-3 py-1.5 text-sm rounded-lg bg-emerald-100 hover:bg-emerald-200 transition';
-    btnAll.textContent = 'ดาวน์โหลดข้อมูลทั้งหมด (Excel)';
-    btnAll.addEventListener('click', () => SUN_exportCurrentDataToExcel('dashboard_data.xlsx'));
-    container.appendChild(btnCsv);
-    container.appendChild(btnXlsx);
-    container.appendChild(btnAll);
-    headerBar.appendChild(container);
+  function insertMainTableButtons(){
+    const header=document.querySelector('#dataTableSection .flex.items-center.justify-between');
+    const tbl=document.getElementById('dataTable'); if(!header||!tbl) return;
+    if(header.querySelector('[data-sun-mainexcel]')) return;
+    const box=document.createElement('div'); box.className='flex items-center gap-2'; box.setAttribute('data-sun-mainexcel','1');
+    const x1=document.createElement('button'); x1.type='button'; x1.className='px-3 py-1.5 text-sm rounded-lg bg-gray-100 hover:bg-gray-200'; x1.textContent='ดาวน์โหลดตาราง (Excel)';
+    x1.addEventListener('click',()=>exportTableToExcel(tbl,'table_display.xlsx'));
+    const x2=document.createElement('button'); x2.type='button'; x2.className='px-3 py-1.5 text-sm rounded-lg bg-emerald-100 hover:bg-emerald-200'; x2.textContent='ดาวน์โหลดข้อมูลทั้งหมด (Excel)';
+    x2.addEventListener('click',()=>exportCurrentDataToExcel('dashboard_data.xlsx'));
+    box.appendChild(x1); box.appendChild(x2); header.appendChild(box);
   }
-  function SUN_injectEventListExcelButton(){
-    const tbl = document.getElementById('eventListTable');
-    if (!tbl) return;
-    let card = tbl.closest('.bg-white') || tbl.parentElement;
-    if (!card) return;
-    let headerBar = card.querySelector('.flex.items-center.justify-between');
-    if (!headerBar){
-      headerBar = document.createElement('div');
-      headerBar.className = 'flex items-center justify-between mb-4';
-      card.insertBefore(headerBar, card.firstChild);
-    }
-    const container = document.createElement('div');
-    container.className = 'flex items-center gap-2';
-    const btnXlsx = document.createElement('button');
-    btnXlsx.type = 'button';
-    btnXlsx.className = 'px-3 py-1.5 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 transition';
-    btnXlsx.textContent = 'ดาวน์โหลดตาราง (Excel)';
-    btnXlsx.addEventListener('click', () => SUN_exportTableToExcel(tbl, 'event_list.xlsx'));
-    container.appendChild(btnXlsx);
-    headerBar.appendChild(container);
+  function insertEventListExcelButton(){
+    const tbl=document.getElementById('eventListTable'); if(!tbl) return;
+    const card=tbl.closest('.bg-white')||tbl.parentElement; if(!card) return;
+    let header=card.querySelector('.flex.items-center.justify-between');
+    if(!header){ header=document.createElement('div'); header.className='flex items-center justify-between mb-4'; card.insertBefore(header, card.firstChild); }
+    if(header.querySelector('[data-sun-eventexcel]')) return;
+    const box=document.createElement('div'); box.className='flex items-center gap-2'; box.setAttribute('data-sun-eventexcel','1');
+    const btn=document.createElement('button'); btn.type='button'; btn.className='px-3 py-1.5 text-sm rounded-lg bg-gray-100 hover:bg-gray-200'; btn.textContent='ดาวน์โหลดตาราง (Excel)';
+    btn.addEventListener('click',()=>exportTableToExcel(tbl,'event_list.xlsx'));
+    box.appendChild(btn); header.appendChild(box);
   }
-  function SUN_waitAndInject(){
-    let attempts = 0;
-    const timer = setInterval(() => {
-      attempts++;
-      const chartsReady = ['timelineChart','eventGroupPieChart','provinceChart','priorityChart','statusChart']
-        .map(id => document.getElementById(id))
-        .every(c => !!c);
-      const mainTbl = document.getElementById('dataTable');
-      const evtTbl  = document.getElementById('eventListTable');
-      if (chartsReady || mainTbl || evtTbl || attempts > 20){
-        clearInterval(timer);
-        try{ SUN_injectChartToolbars(); }catch(e){ console.warn(e); }
-        try{ SUN_injectMainTableButtons(); }catch(e){ console.warn(e); }
-        try{ SUN_injectEventListExcelButton(); }catch(e){ console.warn(e); }
-      }
-    }, 300);
+  function removeCSVButtons(){
+    document.querySelectorAll('button').forEach(b=>{
+      const t=(b.textContent||'').toLowerCase();
+      if(t.includes('csv')) b.remove();
+    });
   }
-  document.addEventListener('DOMContentLoaded', SUN_waitAndInject);
+  function boot(){
+    removeCSVButtons();
+    injectChartToolbars();
+    insertMainTableButtons();
+    insertEventListExcelButton();
+  }
+  document.addEventListener('DOMContentLoaded', boot);
 })();
 </script>
-<!-- === /SUN Export & Chart Title Utilities === -->
+<!-- /SUN minimal -->
 
 </body>
 </html>
