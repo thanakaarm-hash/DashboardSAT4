@@ -387,32 +387,26 @@
   try {
     const url = './data/dashboard_data.json?cacheBust=' + Date.now(); // กันแคชค้างบน Pages
     const res = await fetch(url, { cache: 'no-store' });
-    console.log('[FETCH]', url, 'status=', res.status, 'ok=', res.ok);
-    if (!res.ok) {
-      alert('โหลดไฟล์ไม่สำเร็จ:\n' + url + '\nHTTP ' + res.status + '\nตรวจชื่อโฟลเดอร์/ไฟล์ และตำแหน่งการเผยแพร่ (root/docs)');
-      throw new Error('HTTP ' + res.status);
-    }
-    const json = await res.json();
-    if (!Array.isArray(json)) {
-      alert('ไฟล์ JSON รูปแบบไม่ตรง (ต้องเป็น Array ของ Object)');
-      throw new Error('JSON is not an array');
-    }
-    currentData = json;
-    processData(json);
+    if (res.ok) {
+      const json = await res.json();
+      currentData = json;
+      processData(json);
 
-    // ถ้ามีช่วงวันที่ที่เราเคยเก็บไว้ในเครื่อง ก็ยังนำมาแสดงได้
-    const storedStartDate = localStorage.getItem('customStartDate');
-    const storedEndDate = localStorage.getItem('customEndDate');
-    if (storedStartDate && storedEndDate) {
-      updateCustomDateRange(storedStartDate, storedEndDate);
-    }
+      // ถ้ามีช่วงวันที่ที่เราเคยเก็บไว้ในเครื่อง ก็ยังนำมาแสดงได้
+      const storedStartDate = localStorage.getItem('customStartDate');
+      const storedEndDate = localStorage.getItem('customEndDate');
+      if (storedStartDate && storedEndDate) {
+        updateCustomDateRange(storedStartDate, storedEndDate);
+      }
 
-    // โหมดผู้เยี่ยมชม: ซ่อนส่วนอัปโหลดหลังประตูยืนยัน (แสดงเฉพาะในโหมดผู้ดูแล)
-    isAuthenticated = false;
-    document.getElementById('dateRangeForm')?.classList.add('hidden');
-    uploadContainer?.classList.add('hidden');
-    document.getElementById('fileInfo')?.classList.add('hidden');
-    return;
+      // โหมดผู้เยี่ยมชม: ซ่อนส่วนอัปโหลดไว้หลังประตูยืนยันตัวตน
+      isAuthenticated = false;
+      document.getElementById('dateRangeForm').classList.add('hidden');
+      uploadContainer.classList.add('hidden');
+      document.getElementById('fileInfo').classList.add('hidden');
+      // ปล่อยให้ authForm แสดงเมื่อผู้ใช้กดเปิดส่วน "อัปโหลด/ผู้ดูแล"
+      return;
+    }
   } catch (e) {
     console.warn('Failed to load shared JSON from /data:', e);
   }
@@ -1290,189 +1284,5 @@
             }
         }
     </script>
-
-<script>
-// === Export & Utility Add-ons (v2) ===
-(function(){
-  function downloadCanvasPNG(canvas, filename) {
-    try {
-      const link = document.createElement('a');
-      link.href = canvas.toDataURL('image/png');
-      link.download = filename || (canvas.id || 'chart') + '.png';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (e) {
-      console.error('downloadCanvasPNG error:', e);
-      alert('ไม่สามารถดาวน์โหลดภาพกราฟได้');
-    }
-  }
-
-  async function copyCanvasToClipboard(canvas) {
-    try {
-      if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
-        throw new Error('Clipboard API not available');
-      }
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-      if (!blob) throw new Error('toBlob failed');
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      alert('คัดลอกภาพกราฟไปยังคลิปบอร์ดแล้ว ✅');
-    } catch (e) {
-      console.warn('copyCanvasToClipboard:', e);
-      downloadCanvasPNG(canvas, (canvas.id || 'chart') + '.png');
-      alert('เบราว์เซอร์ไม่รองรับการคัดลอกภาพอัตโนมัติ — จึงดาวน์โหลดไฟล์ PNG ให้แทน');
-    }
-  }
-
-  function addToolbarForChart(canvasId) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-    let card = canvas.closest('.bg-white.rounded-xl.card-shadow') || canvas.closest('.bg-white');
-    let header = card ? card.querySelector('.flex.items-center.mb-6') : null;
-    const bar = document.createElement('div');
-    bar.className = 'ml-auto flex items-center gap-2';
-
-    const btnCopy = document.createElement('button');
-    btnCopy.type = 'button';
-    btnCopy.className = 'px-3 py-1.5 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 transition';
-    btnCopy.textContent = 'คัดลอกกราฟ';
-    btnCopy.addEventListener('click', () => copyCanvasToClipboard(canvas));
-
-    const btnPNG = document.createElement('button');
-    btnPNG.type = 'button';
-    btnPNG.className = 'px-3 py-1.5 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 transition';
-    btnPNG.textContent = 'ดาวน์โหลด PNG';
-    btnPNG.addEventListener('click', () => downloadCanvasPNG(canvas, canvasId + '.png'));
-
-    bar.appendChild(btnCopy);
-    bar.appendChild(btnPNG);
-
-    if (header) header.appendChild(bar);
-    else canvas.parentElement.insertBefore(bar, canvas);
-  }
-
-  function injectChartToolbars() {
-    ['timelineChart','eventGroupPieChart','provinceChart','priorityChart','statusChart']
-      .forEach(addToolbarForChart);
-  }
-
-  function exportTableToCSV(tableElement, filename) {
-    const rows = tableElement.querySelectorAll('tr');
-    const csv = [];
-    for (const tr of rows) {
-      const cells = tr.querySelectorAll('th,td');
-      const row = [];
-      for (const cell of cells) {
-        let text = (cell.innerText || '').replace(/\r?\n|\r/g, ' ').trim();
-        text = '"' + text.replace(/"/g, '""') + '"';
-        row.push(text);
-      }
-      if (row.length) csv.push(row.join(','));
-    }
-    const blob = new Blob(['\ufeff' + csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename || 'table.csv';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
-  function exportTableToExcel(tableElement, filename) {
-    try {
-      if (window.XLSX && XLSX.utils && XLSX.writeFile) {
-        const wb = XLSX.utils.table_to_book(tableElement, { sheet: 'Table' });
-        XLSX.writeFile(wb, filename || 'table.xlsx');
-      } else {
-        throw new Error('XLSX not available');
-      }
-    } catch (e) {
-      console.warn('exportTableToExcel failed, fallback to CSV:', e);
-      exportTableToCSV(tableElement, (filename || 'table.xlsx').replace(/\.xlsx$/i, '.csv'));
-    }
-  }
-
-  function exportCurrentDataToExcel(filename) {
-    try {
-      if (!Array.isArray(currentData) || currentData.length === 0) {
-        alert('ไม่มีข้อมูลให้ดาวน์โหลด');
-        return;
-      }
-      if (window.XLSX && XLSX.utils && XLSX.writeFile) {
-        const ws = XLSX.utils.json_to_sheet(currentData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Data');
-        XLSX.writeFile(wb, filename || 'dashboard_data.xlsx');
-      } else {
-        const cols = Object.keys(currentData[0]);
-        const lines = [cols.join(',')];
-        currentData.forEach(row => {
-          const line = cols.map(k => {
-            let v = row[k];
-            if (v == null) v = '';
-            v = String(v).replace(/"/g, '""');
-            return '"' + v + '"';
-          }).join(',');
-          lines.push(line);
-        });
-        const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = (filename || 'dashboard_data') + '.csv';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-    } catch (e) {
-      console.error('exportCurrentDataToExcel error:', e);
-      alert('ไม่สามารถดาวน์โหลดข้อมูลทั้งหมดได้');
-    }
-  }
-
-  function injectTableExportButtons() {
-    const headerBar = document.querySelector('#dataTableSection .flex.items-center.justify-between');
-    if (!headerBar) return;
-
-    const container = document.createElement('div');
-    container.className = 'flex items-center gap-2';
-
-    const btnCsv = document.createElement('button');
-    btnCsv.type = 'button';
-    btnCsv.className = 'px-3 py-1.5 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 transition';
-    btnCsv.textContent = 'ดาวน์โหลดตาราง (CSV)';
-    btnCsv.addEventListener('click', () => {
-      const tbl = document.getElementById('dataTable');
-      if (tbl) exportTableToCSV(tbl, 'table_display.csv');
-    });
-
-    const btnXlsx = document.createElement('button');
-    btnXlsx.type = 'button';
-    btnXlsx.className = 'px-3 py-1.5 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 transition';
-    btnXlsx.textContent = 'ดาวน์โหลดตาราง (Excel)';
-    btnXlsx.addEventListener('click', () => {
-      const tbl = document.getElementById('dataTable');
-      if (tbl) exportTableToExcel(tbl, 'table_display.xlsx');
-    });
-
-    const btnAll = document.createElement('button');
-    btnAll.type = 'button';
-    btnAll.className = 'px-3 py-1.5 text-sm rounded-lg bg-emerald-100 hover:bg-emerald-200 transition';
-    btnAll.textContent = 'ดาวน์โหลดข้อมูลทั้งหมด (Excel)';
-    btnAll.addEventListener('click', () => exportCurrentDataToExcel('dashboard_data.xlsx'));
-
-    container.appendChild(btnCsv);
-    container.appendChild(btnXlsx);
-    container.appendChild(btnAll);
-    headerBar.appendChild(container);
-  }
-
-  function setupExportUtilities() {
-    injectChartToolbars();
-    injectTableExportButtons();
-  }
-  document.addEventListener('DOMContentLoaded', setupExportUtilities);
-})();
-</script>
-
 </body>
 </html>
