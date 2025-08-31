@@ -382,61 +382,40 @@
         });
 
         // ⭐️ ฟังก์ชันโหลดข้อมูลส่วนกลางที่สร้างขึ้นใหม่
-        async function loadSharedData() {
-// 1) พยายามโหลด JSON กลางจาก repo (GitHub Pages: /data/dashboard_data.json)
-  try {
-    const url = './data/dashboard_data.json?cacheBust=' + Date.now(); // กันแคชค้างบน Pages
-    const res = await fetch(url, { cache: 'no-store' });
-    if (res.ok) {
-      const json = await res.json();
-      currentData = json;
-      processData(json);
-
-      // ถ้ามีช่วงวันที่ที่เราเคยเก็บไว้ในเครื่อง ก็ยังนำมาแสดงได้
-      const storedStartDate = localStorage.getItem('customStartDate');
-      const storedEndDate = localStorage.getItem('customEndDate');
-      if (storedStartDate && storedEndDate) {
-        updateCustomDateRange(storedStartDate, storedEndDate);
-      }
-
-      // โหมดผู้เยี่ยมชม: ซ่อนส่วนอัปโหลดไว้หลังประตูยืนยันตัวตน
-      isAuthenticated = false;
-      document.getElementById('dateRangeForm').classList.add('hidden');
-      uploadContainer.classList.add('hidden');
-      document.getElementById('fileInfo').classList.add('hidden');
-      // ปล่อยให้ authForm แสดงเมื่อผู้ใช้กดเปิดส่วน "อัปโหลด/ผู้ดูแล"
-      return;
-    }
-  } catch (e) {
-    console.warn('Failed to load shared JSON from /data:', e);
-  }
-
-  // 2) ถ้าโหลดกลางไม่สำเร็จ → fallback เป็น localStorage ของเครื่องเรา
-  const storedStartDate = localStorage.getItem('customStartDate');
-  const storedEndDate = localStorage.getItem('customEndDate');
-  const storedData = localStorage.getItem('uploadedData');
-
-  if (storedStartDate && storedEndDate) {
-    document.getElementById('customStartDate').value = storedStartDate;
-    document.getElementById('customEndDate').value = storedEndDate;
-    updateCustomDateRange(storedStartDate, storedEndDate);
-  }
-
-  if (storedData) {
-    try {
-      const parsedData = JSON.parse(storedData);
-      currentData = parsedData;
-      processData(parsedData);
-      return;
-    } catch (e) {
-      console.error('Error loading stored data:', e);
-    }
-  }
-
-  // 3) สุดท้ายค่อยใช้ sample ถ้าไม่มีอะไรเลย
-  initializeSampleData();
-}
-
+        function loadSharedData() {
+            const storedStartDate = localStorage.getItem('customStartDate');
+            const storedEndDate = localStorage.getItem('customEndDate');
+            const storedData = localStorage.getItem('uploadedData');
+            
+            if (storedStartDate && storedEndDate) {
+                document.getElementById('customStartDate').value = storedStartDate;
+                document.getElementById('customEndDate').value = storedEndDate;
+                updateCustomDateRange(storedStartDate, storedEndDate);
+            }
+            
+            if (storedData) {
+                try {
+                    const parsedData = JSON.parse(storedData);
+                    currentData = parsedData;
+                    processData(parsedData);
+                    
+                    isAuthenticated = false;
+                    authForm.classList.remove('hidden');
+                    document.getElementById('dateRangeForm').classList.add('hidden');
+                    uploadContainer.classList.add('hidden');
+                    document.getElementById('fileInfo').classList.add('hidden');
+                    
+                    document.getElementById('username').value = '';
+                    document.getElementById('password').value = '';
+                    document.getElementById('authError').classList.add('hidden');
+                } catch (e) {
+                    console.error('Error loading stored data:', e);
+                    initializeSampleData();
+                }
+            } else {
+                initializeSampleData();
+            }
+        }
         
         // ⭐️ เรียกใช้ฟังก์ชัน loadSharedData() เมื่อ DOM โหลดเสร็จ
         document.addEventListener('DOMContentLoaded', loadSharedData);
@@ -1284,5 +1263,5 @@
             }
         }
     </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'977bf21c4437a1ae',t:'MTc1NjYzNzIwNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
