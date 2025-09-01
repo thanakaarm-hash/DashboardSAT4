@@ -1045,7 +1045,7 @@ try {
             const sortedPriorities = Object.entries(priorityCounts).sort(([,a], [,b]) => b - a);
 
             
-            // Generate a unique, non-repeating color palette per bar
+            // Generate unique palette per bar (no repeated colors)
             function generatePalette(n, alpha = 0.85) {
                 const out = [];
                 const golden = 0.618033988749895;
@@ -1061,7 +1061,7 @@ try {
                 return out;
             }
             const palette = generatePalette(sortedPriorities.length);
-    // Update title with total count
+// Update title with total count
             document.getElementById('priorityTitle').textContent = `เกณฑ์ตรวจสอบข่าว (N= ${total})`;
 
             // Create color mapping for priorities
@@ -1082,8 +1082,8 @@ try {
                     datasets: [{
                         label: 'จำนวนเหตุการณ์',
                         data: sortedPriorities.map(([,count]) => count),
-                        backgroundColor: sortedPriorities.map(([name]) => colorMap[name] || 'rgba(59, 130, 246, 0.8)'),
-                        borderColor: sortedPriorities.map(([name]) => colorMap[name]?.replace('0.8', '1') || 'rgba(59, 130, 246, 1)'),
+                        backgroundColor: sortedPriorities.map((_, idx) => (palette[idx]?.fill || "rgba(59, 130, 246, 0.8)")),
+                        borderColor: sortedPriorities.map((_, idx) => (palette[idx]?.stroke || "rgba(59, 130, 246, 1)")),
                         borderWidth: 2,
                         borderRadius: 8,
                         borderSkipped: false,
@@ -1100,8 +1100,8 @@ try {
                                 generateLabels: function(chart) {
                                     return sortedPriorities.map(([name], index) => ({
                                         text: `${name} (${sortedPriorities[index][1]} ครั้ง)`,
-                                        fillStyle: colorMap[name] || 'rgba(59, 130, 246, 0.8)',
-                                        strokeStyle: colorMap[name]?.replace('0.8', '1') || 'rgba(59, 130, 246, 1)',
+                                        fillStyle: palette[index]?.fill || "rgba(59, 130, 246, 0.8)", 130, 246, 0.8)',
+                                        strokeStyle: palette[index]?.stroke || "rgba(59, 130, 246, 1)",
                                         lineWidth: 2,
                                         pointStyle: 'rect'
                                     }));
@@ -1138,12 +1138,13 @@ try {
                             },
                             grid: { color: 'rgba(0,0,0,0.1)' }
                         },
-                        x: { 
+                        x: {
                             ticks: { 
                                 font: { family: 'Sarabun', size: 16, weight: 'bold' },
                                 color: function(context) {
                                     const index = context.index;
-                                    return palette[index]?.stroke || 'rgba(59, 130, 246, 1)';
+                                    const name = sortedPriorities[index][0];
+                                    return palette[index]?.stroke || "rgba(59, 130, 246, 1)";
                                 }
                             },
                             grid: { display: false }
