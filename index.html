@@ -1305,116 +1305,214 @@ try {
     </script>
 
 <!-- SUN minimal exports & chart title utilities -->
+
 <script>
 (function(){
-  function ensureXLSX(cb){
-    if (window.XLSX && XLSX.utils && XLSX.writeFile) { cb(); return; }
-    var s=document.createElement('script');
-    s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
-    s.onload=cb; document.head.appendChild(s);
+  // --- Config ---
+  const REQUIRED_KEYS = ['Event_Group','Event_list','Province_Name','District_Name','Subdistrict_Name'];
+  const POLL_MAX_TRIES = 60; // ~15s at 250ms
+  const POLL_INTERVAL_MS = 250;
+
+  // --- Utilities ---
+  function isArray(x){ return Array.isArray(x); }
+  function uniq(arr){ return [...new Set(arr.filter(v => v !== undefined && v !== null && v !== ''))]; }
+  function by(a,b){ return a.localeCompare(b, 'th'); }
+  function setEnabled(el, enabled){
+    el.disabled = !enabled;
+    if (enabled){ el.classList.remove('opacity-60','cursor-not-allowed','bg-gray-50'); }
+    else { el.classList.add('opacity-60','cursor-not-allowed','bg-gray-50'); }
   }
-  function titleOf(canvas){
-    let t = canvas.getAttribute('data-title') || canvas.getAttribute('aria-label') || '';
-    const card = canvas.closest('.bg-white');
-    const h = card && card.querySelector('h1,h2,h3,.text-2xl,.text-xl,.text-lg');
-    if (h && h.textContent) t = h.textContent.trim();
-    return t || (canvas.id || 'Chart');
+  function looksLikeRecords(arr){
+    if (!isArray(arr) || !arr.length) return false;
+    // At least one required key appears in some object
+    return arr.some(o => o && typeof o === 'object' && REQUIRED_KEYS.some(k => k in o));
   }
-  function composeWithTitle(canvas, t){
-    const dpr = window.devicePixelRatio || 1, pad=12, tp=18, titleArea=Math.round((tp+pad*2)*dpr);
-    const out=document.createElement('canvas'); out.width=canvas.width; out.height=canvas.height+titleArea;
-    const c=out.getContext('2d'); c.fillStyle='#fff'; c.fillRect(0,0,out.width,out.height);
-    c.fillStyle='#111827'; c.font=`${Math.round(tp*dpr)}px system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif`;
-    c.textBaseline='top'; c.textAlign='left'; c.fillText(t, Math.round(pad*dpr), Math.round(pad*dpr));
-    c.drawImage(canvas, 0, titleArea); return out;
-  }
-  function downloadPNGWithTitle(canvas, fname){
-    const out = composeWithTitle(canvas, titleOf(canvas));
-    const a=document.createElement('a'); a.href=out.toDataURL('image/png'); a.download=fname||((canvas.id||'chart')+'.png');
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  }
-  async function copyPNGWithTitle(canvas){
-    try{
-      if (!navigator.clipboard || typeof ClipboardItem==='undefined') throw new Error('no clipboard api');
-      const out = composeWithTitle(canvas, titleOf(canvas));
-      const blob = await new Promise(r=>out.toBlob(r,'image/png'));
-      await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
-      alert('คัดลอกภาพกราฟ (รวมชื่อ) แล้ว ✅');
-    }catch(e){
-      downloadPNGWithTitle(canvas, (canvas.id||'chart')+'.png');
+
+  // Try hard to locate the data array in various globals
+  function sniffDataCandidates(){
+    const candidates = [];
+    const names = [
+      'currentData','data','allData','dataset','events','rows','fullData','rawData','tableData','records','items','DATA'
+    ];
+    names.forEach(n => {
+      if (window[n] && isArray(window[n]) && looksLikeRecords(window[n])) candidates.push(window[n]);
+    });
+    // Functions that may return data
+    const fnNames = ['getCurrentData','getData','getAllData'];
+    fnNames.forEach(fn => {
+      if (typeof window[fn] === 'function'){
+        try {
+          const out = window[fn]();
+          if (isArray(out) && looksLikeRecords(out)) candidates.push(out);
+        } catch(e){}
+      }
+    });
+    // Some pages attach to window.__STATE etc.
+    if (window.__STATE && isArray(window.__STATE.data) && looksLikeRecords(window.__STATE.data)) {
+      candidates.push(window.__STATE.data);
     }
+    // Best-effort: if a global chart data exists with .raw, consider it
+    if (window.chartData && isArray(window.chartData.raw) && looksLikeRecords(window.chartData.raw)){
+      candidates.push(window.chartData.raw);
+    }
+    // de-dup by reference
+    return Array.from(new Set(candidates));
   }
-  function addChartToolbar(id){
-    const cv=document.getElementById(id); if(!cv) return;
-    const card=cv.closest('.bg-white.rounded-xl.card-shadow')||cv.closest('.bg-white')||cv.parentElement;
-    if(!card) return;
-    if(card.querySelector('[data-sun-toolbar="'+id+'"]')) return;
-    const header = card.querySelector('.flex.items-center.mb-6, .flex.items-center.justify-between');
-    const bar=document.createElement('div'); bar.className='ml-auto flex items-center gap-2'; bar.setAttribute('data-sun-toolbar', id);
-    const b1=document.createElement('button'); b1.type='button'; b1.className='px-3 py-1.5 text-xs rounded-lg bg-gray-100 hover:bg-gray-200'; b1.textContent='คัดลอกกราฟ';
-    b1.addEventListener('click',()=>copyPNGWithTitle(cv));
-    const b2=document.createElement('button'); b2.type='button'; b2.className='px-3 py-1.5 text-xs rounded-lg bg-gray-100 hover:bg-gray-200'; b2.textContent='ดาวน์โหลด PNG';
-    b2.addEventListener('click',()=>downloadPNGWithTitle(cv, id+'.png'));
-    bar.appendChild(b1); bar.appendChild(b2);
-    (header||card).appendChild(bar);
+
+  function pickBestData(){
+    // Priority: window.currentData if valid, else first candidate
+    if (window.currentData && isArray(window.currentData) && looksLikeRecords(window.currentData)) return window.currentData;
+    const cands = sniffDataCandidates();
+    if (cands.length) return cands[0];
+    return [];
   }
-  function injectChartToolbars(){
-    ['timelineChart','eventGroupPieChart','provinceChart','priorityChart','statusChart'].forEach(addChartToolbar);
-  }
-  function exportTableToExcel(tbl, filename){
-    ensureXLSX(function(){
-      try{
-        const wb = XLSX.utils.table_to_book(tbl, {sheet:'Table'});
-        XLSX.writeFile(wb, filename||'table.xlsx');
-      }catch(e){ alert('ไม่สามารถส่งออก Excel ได้'); }
+
+  // --- Elements ---
+  const provinceSel = document.getElementById('FILTER_province');
+  const districtSel = document.getElementById('FILTER_district');
+  const subdistrictSel = document.getElementById('FILTER_subdistrict');
+  const groupSel = document.getElementById('FILTER_group');
+  const eventSel = document.getElementById('FILTER_event');
+  const activeText = document.getElementById('FILTER_active');
+
+  function setOptions(select, values, placeholder){
+    const prev = select.value;
+    select.innerHTML = '';
+    const opt0 = document.createElement('option');
+    opt0.value = ''; opt0.textContent = placeholder || '— ทั้งหมด —';
+    select.appendChild(opt0);
+    values.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v;
+      select.appendChild(o);
     });
+    if (values.includes(prev)) select.value = prev;
   }
-  function exportCurrentDataToExcel(filename){
-    ensureXLSX(function(){
-      try{
-        if(!Array.isArray(window.currentData)||!window.currentData.length){ alert('ไม่มีข้อมูล'); return; }
-        const ws=XLSX.utils.json_to_sheet(window.currentData);
-        const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Data'); XLSX.writeFile(wb, filename||'dashboard_data.xlsx');
-      }catch(e){ alert('ไม่สามารถส่งออก Excel ได้'); }
-    });
+
+  function populateFrom(data){
+    // Explicitly derive from the specified variables
+    const selProv = provinceSel.value || '';
+    const selDist = districtSel.value || '';
+
+    const provinces = uniq(data.map(r => r['Province_Name'])).sort(by);
+    const groups = uniq(data.map(r => r['Event_Group'])).sort(by);
+    const events = uniq(data.map(r => r['Event_list'])).sort(by);
+
+    const districts = uniq(data.filter(r => !selProv || r['Province_Name'] === selProv).map(r => r['District_Name'])).sort(by);
+    const subdistricts = uniq(
+      data.filter(r => (!selProv || r['Province_Name'] === selProv) && (!selDist || r['District_Name'] === selDist))
+          .map(r => r['Subdistrict_Name'])
+    ).sort(by);
+
+    setOptions(provinceSel, provinces, '— เลือกจังหวัด —');
+    setOptions(districtSel, districts, selProv ? '— เลือกอำเภอ —' : '— เลือกจังหวัดก่อน —');
+    setOptions(subdistrictSel, subdistricts, selDist ? '— เลือกตำบล —' : '— เลือกอำเภอก่อน —');
+    setOptions(groupSel, groups, '— ทุกกลุ่มโรค —');
+    // Event list can be narrowed by selected group
+    const limitedEvents = uniq(data.filter(r => !groupSel.value || r['Event_Group'] === groupSel.value).map(r => r['Event_list'])).sort(by);
+    setOptions(eventSel, limitedEvents, '— ทุกโรค/ภัย —');
+
+    setEnabled(districtSel, !!selProv);
+    setEnabled(subdistrictSel, !!selDist);
+
+    renderActive();
   }
-  function insertMainTableButtons(){
-    const header=document.querySelector('#dataTableSection .flex.items-center.justify-between');
-    const tbl=document.getElementById('dataTable'); if(!header||!tbl) return;
-    if(header.querySelector('[data-sun-mainexcel]')) return;
-    const box=document.createElement('div'); box.className='flex items-center gap-2'; box.setAttribute('data-sun-mainexcel','1');
-    const x1=document.createElement('button'); x1.type='button'; x1.className='px-3 py-1.5 text-sm rounded-lg bg-gray-100 hover:bg-gray-200'; x1.textContent='ดาวน์โหลดตาราง (Excel)';
-    x1.addEventListener('click',()=>exportTableToExcel(tbl,'table_display.xlsx'));
-    const x2=document.createElement('button'); x2.type='button'; x2.className='px-3 py-1.5 text-sm rounded-lg bg-emerald-100 hover:bg-emerald-200'; x2.textContent='ดาวน์โหลดข้อมูลทั้งหมด (Excel)';
-    x2.addEventListener('click',()=>exportCurrentDataToExcel('dashboard_data.xlsx'));
-    box.appendChild(x1); box.appendChild(x2); header.appendChild(box);
+
+  function renderActive(){
+    const tokens = [];
+    if (provinceSel.value) tokens.push(`จังหวัด: ${provinceSel.value}`);
+    if (districtSel.value) tokens.push(`อำเภอ: ${districtSel.value}`);
+    if (subdistrictSel.value) tokens.push(`ตำบล: ${subdistrictSel.value}`);
+    if (groupSel.value) tokens.push(`กลุ่มโรค: ${groupSel.value}`);
+    if (eventSel.value) tokens.push(`โรค/ภัย: ${eventSel.value}`);
+    activeText.textContent = tokens.length ? `ตัวกรองที่ใช้งาน — ${tokens.join(' • ')}` : 'เลือกตัวกรองได้ด้านบน';
   }
-  function insertEventListExcelButton(){
-    const tbl=document.getElementById('eventListTable'); if(!tbl) return;
-    const card=tbl.closest('.bg-white')||tbl.parentElement; if(!card) return;
-    let header=card.querySelector('.flex.items-center.justify-between');
-    if(!header){ header=document.createElement('div'); header.className='flex items-center justify-between mb-4'; card.insertBefore(header, card.firstChild); }
-    if(header.querySelector('[data-sun-eventexcel]')) return;
-    const box=document.createElement('div'); box.className='flex items-center gap-2'; box.setAttribute('data-sun-eventexcel','1');
-    const btn=document.createElement('button'); btn.type='button'; btn.className='px-3 py-1.5 text-sm rounded-lg bg-gray-100 hover:bg-gray-200'; btn.textContent='ดาวน์โหลดตาราง (Excel)';
-    btn.addEventListener('click',()=>exportTableToExcel(tbl,'event_list.xlsx'));
-    box.appendChild(btn); header.appendChild(box);
+
+  function getFiltered(data){
+    return data.filter(r =>
+      (!provinceSel.value || r['Province_Name'] === provinceSel.value) &&
+      (!districtSel.value || r['District_Name'] === districtSel.value) &&
+      (!subdistrictSel.value || r['Subdistrict_Name'] === subdistrictSel.value) &&
+      (!groupSel.value || r['Event_Group'] === groupSel.value) &&
+      (!eventSel.value || r['Event_list'] === eventSel.value)
+    );
   }
-  function removeCSVButtons(){
-    document.querySelectorAll('button').forEach(b=>{
-      const t=(b.textContent||'').toLowerCase();
-      if(t.includes('csv')) b.remove();
-    });
+
+  // --- Chart refresh adapter: call existing functions if available ---
+  function rerenderAll(data){
+    if (typeof window.createEventListTable === 'function') window.createEventListTable(data);
+    if (typeof window.createEventGroupPieChart === 'function') window.createEventGroupPieChart(data);
+    if (typeof window.createProvinceChart === 'function') window.createProvinceChart(data);
+    if (typeof window.createTimelineChart === 'function') window.createTimelineChart(data);
+    if (typeof window.createPriorityChart === 'function') window.createPriorityChart(data);
+    if (typeof window.createStatusChart === 'function') window.createStatusChart(data);
+    if (typeof window.createDataTable === 'function') window.createDataTable(data);
+    if (typeof window.updateSummary === 'function') window.updateSummary(data);
   }
-  function boot(){
-    removeCSVButtons();
-    injectChartToolbars();
-    insertMainTableButtons();
-    insertEventListExcelButton();
+
+  // --- Event Handlers ---
+  function onProvinceChange(){
+    const selProv = provinceSel.value || '';
+    if (!selProv){ districtSel.value=''; subdistrictSel.value=''; setEnabled(districtSel,false); setEnabled(subdistrictSel,false); }
+    else { setEnabled(districtSel,true); subdistrictSel.value=''; setEnabled(subdistrictSel,false); }
+    const data = pickBestData(); populateFrom(data);
   }
-  document.addEventListener('DOMContentLoaded', boot);
+  function onDistrictChange(){
+    const selDist = districtSel.value || '';
+    if (!selDist){ subdistrictSel.value=''; setEnabled(subdistrictSel,false); }
+    else { setEnabled(subdistrictSel,true); }
+    const data = pickBestData(); populateFrom(data);
+  }
+  function onGroupOrEventChange(){
+    const data = pickBestData(); populateFrom(data);
+  }
+
+  document.getElementById('FILTER_apply').addEventListener('click', function(){
+    if (!provinceSel.value && (districtSel.value || subdistrictSel.value)){ alert('โปรดเลือก \"จังหวัด\" ก่อน'); return; }
+    if (!districtSel.value && subdistrictSel.value){ alert('โปรดเลือก \"อำเภอ\" ก่อน'); return; }
+    const data = pickBestData();
+    rerenderAll(getFiltered(data));
+  });
+  document.getElementById('FILTER_clear').addEventListener('click', function(){
+    provinceSel.value=''; districtSel.value=''; subdistrictSel.value=''; groupSel.value=''; eventSel.value='';
+    setEnabled(districtSel,false); setEnabled(subdistrictSel,false);
+    const data = pickBestData();
+    populateFrom(data);
+    rerenderAll(data);
+  });
+  provinceSel.addEventListener('change', onProvinceChange);
+  districtSel.addEventListener('change', onDistrictChange);
+  subdistrictSel.addEventListener('change', onGroupOrEventChange);
+  groupSel.addEventListener('change', onGroupOrEventChange);
+  eventSel.addEventListener('change', onGroupOrEventChange);
+
+  // Hook into known loaders if present to repopulate after load
+  ['loadSharedData','hydrate','init'].forEach(fnName => {
+    if (typeof window[fnName] === 'function'){
+      const oldFn = window[fnName];
+      window[fnName] = function(){
+        const res = oldFn.apply(this, arguments);
+        setTimeout(() => { try { populateFrom(pickBestData()); } catch(e){} }, 0);
+        return res;
+      };
+    }
+  });
+
+  // DOMContentLoaded + polling to wait for data
+  document.addEventListener('DOMContentLoaded', function(){
+    let tries = 0;
+    const iv = setInterval(function(){
+      tries++;
+      const data = pickBestData();
+      if (looksLikeRecords(data) || tries >= POLL_MAX_TRIES){
+        clearInterval(iv);
+        populateFrom(data);
+      }
+    }, POLL_INTERVAL_MS);
+  });
 })();
 </script>
+
 <!-- /SUN minimal -->
 
 
