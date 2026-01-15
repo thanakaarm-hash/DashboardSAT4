@@ -35,8 +35,44 @@
                 <p id="dataDateRange" class="text-sm">ข้อมูลตั้งแต่วันที่ <span id="startDate">-</span> ถึง <span id="endDate">-</span></p>
                 <p class="text-xs mt-1">อ้างอิงจากโปรแกรม M-EBS กรมควบคุมโรค</p>
             </div>
+            <div class="mt-4 text-right">
+                <p class="text-xs text-blue-200 opacity-90 font-light italic">
+                    หมายเหตุ: ข้อมูลที่แสดงเป็นข้อมูลที่ระบบตรวจจับได้ตั้งแต่ระดับก่อนเข้าเกณฑ์ตรวจสอบข่าว กรมควบคุมโรค เพื่อใช้อ้างอิงภาระงานของทีมตระหนักรู้สถานการณ์เท่านั้น
+                </p>
+            </div>
         </div>
     </header>
+
+    <div class="container mx-auto px-6 mt-6">
+        <div class="bg-white rounded-xl shadow p-4 border border-gray-200">
+            <div class="flex flex-wrap items-end gap-4">
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
+                    <select id="filterProvince" class="w-full rounded-lg border-gray-300 border p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="">ทั้งหมด</option>
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">อำเภอ</label>
+                    <select id="filterDistrict" class="w-full rounded-lg border-gray-300 border p-2 focus:ring-indigo-500 focus:border-indigo-500" disabled>
+                        <option value="">ทั้งหมด</option>
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ตำบล</label>
+                    <select id="filterSubdistrict" class="w-full rounded-lg border-gray-300 border p-2 focus:ring-indigo-500 focus:border-indigo-500" disabled>
+                        <option value="">ทั้งหมด</option>
+                    </select>
+                </div>
+                <div>
+                    <button id="resetFilterBtn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        รีเซ็ตตัวกรอง
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="container mx-auto px-6 py-8">
 
@@ -45,7 +81,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-blue-100 text-sm font-medium">จำนวนเหตุการณ์ทั้งหมด</p>
-                        <p id="totalEvents" class="text-3xl font-bold">1,247</p>
+                        <p id="totalEvents" class="text-3xl font-bold">-</p>
                     </div>
                     <div class="text-5xl opacity-80">📊</div>
                 </div>
@@ -55,7 +91,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-green-100 text-sm font-medium">จำนวนผู้ป่วยรวม</p>
-                        <p id="totalCases" class="text-3xl font-bold">8,934</p>
+                        <p id="totalCases" class="text-3xl font-bold">-</p>
                     </div>
                     <div class="text-5xl opacity-80">👥</div>
                 </div>
@@ -65,7 +101,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-red-100 text-sm font-medium">จำนวนเสียชีวิต</p>
-                        <p id="totalDeaths" class="text-3xl font-bold">89</p>
+                        <p id="totalDeaths" class="text-3xl font-bold">-</p>
                     </div>
                     <div class="text-5xl opacity-80">⚠️</div>
                 </div>
@@ -75,7 +111,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-purple-100 text-sm font-medium">จังหวัดที่เกี่ยวข้อง</p>
-                        <p id="totalProvinces" class="text-3xl font-bold">18</p>
+                        <p id="totalProvinces" class="text-3xl font-bold">-</p>
                     </div>
                     <div class="text-5xl opacity-80">📍</div>
                 </div>
@@ -162,12 +198,36 @@
                             </svg>
                         </div>
                         <div class="flex-1">
-                            <h3 id="priorityTitle" class="text-xl font-semibold text-gray-800">เกณฑ์ตรวจสอบข่าว</h3>
-                            <p class="text-gray-600 text-sm">ระดับความสำคัญของเหตุการณ์</p>
+                            <h3 id="priorityTitle" class="text-xl font-semibold text-gray-800">เกณฑ์ตรวจสอบข่าว & ความไว (Sensitivity)</h3>
+                            <p class="text-gray-600 text-sm">การจำแนกตามเกณฑ์และประสิทธิภาพระบบ</p>
                         </div>
                     </div>
-                    <div class="h-80">
-                        <canvas id="priorityChart"></canvas>
+                    
+                    <div class="flex flex-col gap-6">
+                        <div class="h-64">
+                            <canvas id="priorityChart"></canvas>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 border-t pt-4">
+                            <div class="flex flex-col items-center">
+                                <h4 class="text-sm font-semibold text-gray-700 mb-2">Sensitivity DCIR</h4>
+                                <div class="h-32 w-full relative">
+                                    <canvas id="sensitivityDCIRChart"></canvas>
+                                    <div class="absolute inset-0 flex items-center justify-center pt-8">
+                                        <span id="sensitivityDCIRValue" class="text-xl font-bold text-red-600">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <h4 class="text-sm font-semibold text-gray-700 mb-2">Sensitivity SMEs</h4>
+                                <div class="h-32 w-full relative">
+                                    <canvas id="sensitivitySMEsChart"></canvas>
+                                    <div class="absolute inset-0 flex items-center justify-center pt-8">
+                                        <span id="sensitivitySMEsValue" class="text-xl font-bold text-green-600">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
@@ -315,7 +375,8 @@
 
     <script>
         let chartInstances = {};
-        let currentData = [];
+        let masterData = []; // Store the full dataset
+        let currentData = []; // Store the currently displayed (filtered) data
         let fixedDateRange = null;
 
         // --- Element References ---
@@ -329,7 +390,14 @@
         const authBtn = document.getElementById('authBtn');
         const authForm = document.getElementById('authForm');
         const authError = document.getElementById('authError');
-        const downloadJsonBtn = document.getElementById('downloadJsonBtn'); // ⭐️ อ้างอิงปุ่มใหม่
+        const downloadJsonBtn = document.getElementById('downloadJsonBtn');
+        
+        // Filter Elements
+        const filterProvince = document.getElementById('filterProvince');
+        const filterDistrict = document.getElementById('filterDistrict');
+        const filterSubdistrict = document.getElementById('filterSubdistrict');
+        const resetFilterBtn = document.getElementById('resetFilterBtn');
+
         let isAuthenticated = false;
 
         // Toggle upload section
@@ -343,15 +411,12 @@
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             
-            // ใช้รหัสผ่านที่ปลอดภัยกว่านี้ในระบบจริง
             if (username === 'SAT Manager' && password === 'odpc004999') {
                 isAuthenticated = true;
                 authForm.classList.add('hidden');
                 document.getElementById('dateRangeForm').classList.remove('hidden');
                 uploadContainer.classList.remove('hidden');
                 authError.classList.add('hidden');
-                
-                // Clear file info when re-authenticating
                 document.getElementById('fileInfo').classList.add('hidden');
             } else {
                 authError.textContent = 'Username หรือ Password ไม่ถูกต้อง';
@@ -359,21 +424,18 @@
             }
         });
         
-        // Enter key support for authentication
         document.getElementById('password').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 authBtn.click();
             }
         });
 
-        // Date range update handling
         document.getElementById('updateDateBtn').addEventListener('click', () => {
             const startDate = document.getElementById('customStartDate').value;
             const endDate = document.getElementById('customEndDate').value;
             
             if (startDate && endDate) {
                 updateCustomDateRange(startDate, endDate);
-                // Store the custom date range
                 localStorage.setItem('customStartDate', startDate);
                 localStorage.setItem('customEndDate', endDate);
             } else {
@@ -381,44 +443,124 @@
             }
         });
 
-        // ⭐️ ฟังก์ชันโหลดข้อมูลส่วนกลางที่สร้างขึ้นใหม่
+        // --- Filter Logic ---
+        function populateSelect(selectElement, items, defaultText = "ทั้งหมด") {
+            selectElement.innerHTML = `<option value="">${defaultText}</option>`;
+            items.sort().forEach(item => {
+                if (item) {
+                    const option = document.createElement('option');
+                    option.value = item;
+                    option.textContent = item;
+                    selectElement.appendChild(option);
+                }
+            });
+        }
+
+        function initFilters(data) {
+            const provinces = [...new Set(data.map(d => d.Province_Name))];
+            populateSelect(filterProvince, provinces);
+            
+            // Filters Event Listeners
+            filterProvince.addEventListener('change', () => {
+                const selectedProv = filterProvince.value;
+                
+                // Reset child filters
+                filterDistrict.innerHTML = '<option value="">ทั้งหมด</option>';
+                filterSubdistrict.innerHTML = '<option value="">ทั้งหมด</option>';
+                filterDistrict.disabled = !selectedProv;
+                filterSubdistrict.disabled = true;
+
+                if (selectedProv) {
+                    const districts = [...new Set(data
+                        .filter(d => d.Province_Name === selectedProv)
+                        .map(d => d.District_Name))];
+                    populateSelect(filterDistrict, districts);
+                }
+                applyFilters();
+            });
+
+            filterDistrict.addEventListener('change', () => {
+                const selectedProv = filterProvince.value;
+                const selectedDist = filterDistrict.value;
+                
+                filterSubdistrict.innerHTML = '<option value="">ทั้งหมด</option>';
+                filterSubdistrict.disabled = !selectedDist;
+
+                if (selectedProv && selectedDist) {
+                    const subdistricts = [...new Set(data
+                        .filter(d => d.Province_Name === selectedProv && d.District_Name === selectedDist)
+                        .map(d => d.Subdistrict_Name))];
+                    populateSelect(filterSubdistrict, subdistricts);
+                }
+                applyFilters();
+            });
+
+            filterSubdistrict.addEventListener('change', applyFilters);
+        }
+
+        function applyFilters() {
+            const province = filterProvince.value;
+            const district = filterDistrict.value;
+            const subdistrict = filterSubdistrict.value;
+
+            const filtered = masterData.filter(item => {
+                return (!province || item.Province_Name === province) &&
+                       (!district || item.District_Name === district) &&
+                       (!subdistrict || item.Subdistrict_Name === subdistrict);
+            });
+
+            currentData = filtered;
+            processData(currentData);
+        }
+
+        resetFilterBtn.addEventListener('click', () => {
+            filterProvince.value = "";
+            filterDistrict.innerHTML = '<option value="">ทั้งหมด</option>';
+            filterDistrict.disabled = true;
+            filterSubdistrict.innerHTML = '<option value="">ทั้งหมด</option>';
+            filterSubdistrict.disabled = true;
+            applyFilters();
+        });
+
+
         async function loadSharedData() {
-try {
-    const url = './data/dashboard_data.json?cacheBust=' + Date.now();
-    const res = await fetch(url, { cache: 'no-store' });
-    console.log('[loadSharedData] fetch', url, res.status);
-    if (res.ok) {
-      const json = await res.json();
-      if (Array.isArray(json)) {
-        currentData = json;
-        processData(json);
-        const s = localStorage.getItem('customStartDate');
-        const e = localStorage.getItem('customEndDate');
-        if (s && e && typeof updateCustomDateRange==='function') updateCustomDateRange(s, e);
-        return;
-      }
-    }
-  } catch (err) {
-    console.warn('[loadSharedData] shared JSON load failed:', err);
-  }
-  // Fallbacks:
-  try {
-    const s = localStorage.getItem('customStartDate');
-    const e = localStorage.getItem('customEndDate');
-    if (s && e && typeof updateCustomDateRange==='function') updateCustomDateRange(s, e);
-    const stored = localStorage.getItem('uploadedData');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      currentData = parsed;
-      processData(parsed);
-      return;
-    }
-  } catch (e) { console.warn('localStorage parse fail', e); }
-  if (typeof initializeSampleData==='function') initializeSampleData();
-}
+            try {
+                const url = './data/dashboard_data.json?cacheBust=' + Date.now();
+                const res = await fetch(url, { cache: 'no-store' });
+                if (res.ok) {
+                    const json = await res.json();
+                    if (Array.isArray(json)) {
+                        masterData = json; // Keep master copy
+                        currentData = json;
+                        initFilters(json); // Initialize filters
+                        processData(json);
+                        const s = localStorage.getItem('customStartDate');
+                        const e = localStorage.getItem('customEndDate');
+                        if (s && e && typeof updateCustomDateRange==='function') updateCustomDateRange(s, e);
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn('[loadSharedData] shared JSON load failed:', err);
+            }
+            try {
+                const s = localStorage.getItem('customStartDate');
+                const e = localStorage.getItem('customEndDate');
+                if (s && e && typeof updateCustomDateRange==='function') updateCustomDateRange(s, e);
+                const stored = localStorage.getItem('uploadedData');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    masterData = parsed;
+                    currentData = parsed;
+                    initFilters(parsed);
+                    processData(parsed);
+                    return;
+                }
+            } catch (e) { console.warn('localStorage parse fail', e); }
+            if (typeof initializeSampleData==='function') initializeSampleData();
+        }
 
         
-        // ⭐️ เรียกใช้ฟังก์ชัน loadSharedData() เมื่อ DOM โหลดเสร็จ
         document.addEventListener('DOMContentLoaded', loadSharedData);
 
         uploadArea.addEventListener('click', () => fileInput.click());
@@ -466,31 +608,28 @@ try {
                 const jsonData = XLSX.utils.sheet_to_json(firstSheet);
                 
                 document.getElementById('rowCount').textContent = jsonData.length;
-                currentData = jsonData;
                 
-                // Store uploaded data in localStorage
+                masterData = jsonData; // Save to master
+                currentData = jsonData;
                 localStorage.setItem('uploadedData', JSON.stringify(jsonData));
                 
+                initFilters(jsonData); // Re-init filters with new data
                 processData(jsonData);
                 
-                // Hide upload section after successful upload
                 uploadContent.classList.add('hidden');
                 uploadArrow.classList.remove('rotate-180');
             };
             reader.readAsArrayBuffer(file);
         }
 
-        // ⭐️ ฟังก์ชันสำหรับดาวน์โหลดข้อมูล JSON
         function downloadCurrentDataAsJson() {
             if (currentData.length === 0) {
                 alert("ไม่มีข้อมูลสำหรับดาวน์โหลด");
                 return;
             }
-            
-            const dataStr = JSON.stringify(currentData, null, 2); // `null, 2` สำหรับจัดรูปแบบให้อ่านง่าย
+            const dataStr = JSON.stringify(currentData, null, 2);
             const dataBlob = new Blob([dataStr], {type: "application/json"});
             const url = URL.createObjectURL(dataBlob);
-            
             const link = document.createElement("a");
             link.href = url;
             link.download = "dashboard_data.json";
@@ -500,30 +639,30 @@ try {
             URL.revokeObjectURL(url);
         }
 
-        // ⭐️ เพิ่ม Event Listener ให้กับปุ่มดาวน์โหลด
         downloadJsonBtn.addEventListener('click', downloadCurrentDataAsJson);
 
-        // Initialize with sample data
         function initializeSampleData() {
+            // Updated sample data to match the requested Priority keys for testing
             const sampleData = [
-                {Event_ID: 'E001', Event_Group: 'โรคติดต่อ', Event_list: 'ไข้เลือดออก', Province_Name: 'เชียงใหม่', District_Name: 'เมือง', Subdistrict_Name: 'ช้างเผือก', Place_Type: 'โรงเรียน', Date_Received: '04-01-2567', Onset: '02-01-2567', case: 25, Death: 0, Priority: 'สูง', Status: 'กำลังติดตาม', Investigation: 'ต้องสอบสวน'},
-                {Event_ID: 'E002', Event_Group: 'โรคไม่ติดต่อ', Event_list: 'อาหารเป็นพิษ', Province_Name: 'ลำปาง', District_Name: 'เกาะคา', Subdistrict_Name: 'เกาะคา', Place_Type: 'ร้านอาหาร', Date_Received: '20-02-2567', Onset: '18-02-2567', case: 12, Death: 1, Priority: 'กลาง', Status: 'เสร็จสิ้น', Investigation: 'สอบสวนแล้ว'},
-                {Event_ID: 'E003', Event_Group: 'อุบัติเหตุ', Event_list: 'อุบัติเหตุจราจร', Province_Name: 'ลำพูน', District_Name: 'เมือง', Subdistrict_Name: 'นายม', Place_Type: 'ถนน', Date_Received: '10-03-2567', Onset: '10-03-2567', case: 8, Death: 2, Priority: 'สูง', Status: 'กำลังติดตาม', Investigation: 'ไม่ต้องสอบสวน'},
-                {Event_ID: 'E004', Event_Group: 'โรคติดต่อ', Event_list: 'โควิด-19', Province_Name: 'แพร่', District_Name: 'เมือง', Subdistrict_Name: 'ในเวียง', Place_Type: 'โรงพยาบาล', Date_Received: '05-04-2567', Onset: '02-04-2567', case: 45, Death: 3, Priority: 'สูง', Status: 'กำลังติดตาม', Investigation: 'ต้องสอบสวน'},
-                {Event_ID: 'E005', Event_Group: 'สิ่งแวดล้อม', Event_list: 'มลพิษทางอากาศ', Province_Name: 'น่าน', District_Name: 'เมือง', Subdistrict_Name: 'ในเวียง', Place_Type: 'โรงงาน', Date_Received: '12-05-2567', Onset: '10-05-2567', case: 30, Death: 0, Priority: 'กลาง', Status: 'รอดำเนินการ', Investigation: 'ต้องสอบสวน'},
-                {Event_ID: 'E006', Event_Group: 'โรคติดต่อ', Event_list: 'มือเท้าปาก', Province_Name: 'เชียงราย', District_Name: 'เมือง', Subdistrict_Name: 'รอบเวียง', Place_Type: 'ศูนย์เด็กเล็ก', Date_Received: '18-06-2567', Onset: '15-06-2567', case: 18, Death: 0, Priority: 'กลาง', Status: 'กำลังติดตาม', Investigation: 'ต้องสอบสวน'},
-                {Event_ID: 'E007', Event_Group: 'โรคไม่ติดต่อ', Event_list: 'พิษจากสารเคมี', Province_Name: 'พะเยา', District_Name: 'เมือง', Subdistrict_Name: 'เวียง', Place_Type: 'ชุมชน', Date_Received: '22-07-2567', Onset: '20-07-2567', case: 15, Death: 1, Priority: 'สูง', Status: 'เสร็จสิ้น', Investigation: 'สอบสวนแล้ว'},
-                {Event_ID: 'E008', Event_Group: 'อุบัติเหตุ', Event_list: 'ไฟไหม้', Province_Name: 'เชียงใหม่', District_Name: 'สันทราย', Subdistrict_Name: 'สันทราย', Place_Type: 'โรงงาน', Date_Received: '14-08-2567', Onset: '14-08-2567', case: 22, Death: 4, Priority: 'สูง', Status: 'กำลังติดตาม', Investigation: 'ไม่ต้องสอบสวน'},
-                {Event_ID: 'E009', Event_Group: 'โรคติดต่อ', Event_list: 'ไข้หวัดใหญ่', Province_Name: 'ลำปาง', District_Name: 'แม่เมาะ', Subdistrict_Name: 'แม่เมาะ', Place_Type: 'โรงเรียน', Date_Received: '08-09-2567', Onset: '05-09-2567', case: 35, Death: 0, Priority: 'กลาง', Status: 'กำลังติดตาม', Investigation: 'ต้องสอบสวน'},
-                {Event_ID: 'E010', Event_Group: 'สิ่งแวดล้อม', Event_list: 'น้ำเสีย', Province_Name: 'ลำพูน', District_Name: 'ป่าซาง', Subdistrict_Name: 'ป่าซาง', Place_Type: 'แหล่งน้ำ', Date_Received: '06-12-2567', Onset: '04-12-2567', case: 28, Death: 0, Priority: 'กลาง', Status: 'รอดำเนินการ', Investigation: 'ต้องสอบสวน'}
+                {Event_ID: 'E001', Event_Group: 'โรคติดต่อ', Event_list: 'ไข้เลือดออก', Province_Name: 'เชียงใหม่', District_Name: 'เมือง', Subdistrict_Name: 'ช้างเผือก', case: 25, Death: 0, Priority: 'เข้าเกณฑ์ตรวจสอบข่าว และ เข้าเกณฑ์ DCIR', Status: 'กำลังติดตาม', Investigation: 'ต้องสอบสวน', Date_Received: '04-01-2567'},
+                {Event_ID: 'E002', Event_Group: 'โรคไม่ติดต่อ', Event_list: 'อาหารเป็นพิษ', Province_Name: 'ลำปาง', District_Name: 'เกาะคา', Subdistrict_Name: 'เกาะคา', case: 12, Death: 1, Priority: 'เข้าเกณฑ์ตรวจสอบข่าว แต่ไม่เข้าเกณฑ์ DCIR', Status: 'เสร็จสิ้น', Investigation: 'สอบสวนแล้ว', Date_Received: '20-02-2567'},
+                {Event_ID: 'E003', Event_Group: 'อุบัติเหตุ', Event_list: 'อุบัติเหตุจราจร', Province_Name: 'ลำพูน', District_Name: 'เมือง', Subdistrict_Name: 'นายม', case: 8, Death: 2, Priority: 'ไม่เข้าเกณฑ์ตรวจสอบข่าวของ SAT', Status: 'กำลังติดตาม', Investigation: 'ไม่ต้องสอบสวน', Date_Received: '10-03-2567'},
+                {Event_ID: 'E004', Event_Group: 'โรคติดต่อ', Event_list: 'โควิด-19', Province_Name: 'แพร่', District_Name: 'เมือง', Subdistrict_Name: 'ในเวียง', case: 45, Death: 3, Priority: 'เข้าเกณฑ์ตรวจสอบข่าว และ เข้าเกณฑ์ DCIR', Status: 'กำลังติดตาม', Investigation: 'ต้องสอบสวน', Date_Received: '05-04-2567'},
+                {Event_ID: 'E005', Event_Group: 'สิ่งแวดล้อม', Event_list: 'มลพิษทางอากาศ', Province_Name: 'น่าน', District_Name: 'เมือง', Subdistrict_Name: 'ในเวียง', case: 30, Death: 0, Priority: 'เข้าเกณฑ์ตรวจสอบข่าว แต่ไม่เข้าเกณฑ์ DCIR', Status: 'รอดำเนินการ', Investigation: 'ต้องสอบสวน', Date_Received: '12-05-2567'},
+                {Event_ID: 'E006', Event_Group: 'โรคติดต่อ', Event_list: 'มือเท้าปาก', Province_Name: 'เชียงราย', District_Name: 'เมือง', Subdistrict_Name: 'รอบเวียง', case: 18, Death: 0, Priority: 'เข้าเกณฑ์ตรวจสอบข่าว แต่ไม่เข้าเกณฑ์ DCIR', Status: 'กำลังติดตาม', Investigation: 'ต้องสอบสวน', Date_Received: '18-06-2567'},
+                {Event_ID: 'E007', Event_Group: 'โรคไม่ติดต่อ', Event_list: 'พิษจากสารเคมี', Province_Name: 'พะเยา', District_Name: 'เมือง', Subdistrict_Name: 'เวียง', case: 15, Death: 1, Priority: 'ไม่เข้าเกณฑ์ตรวจสอบข่าวของ SAT', Status: 'เสร็จสิ้น', Investigation: 'สอบสวนแล้ว', Date_Received: '22-07-2567'},
+                {Event_ID: 'E008', Event_Group: 'อุบัติเหตุ', Event_list: 'ไฟไหม้', Province_Name: 'เชียงใหม่', District_Name: 'สันทราย', Subdistrict_Name: 'สันทราย', case: 22, Death: 4, Priority: 'ไม่ระบุ', Status: 'กำลังติดตาม', Investigation: 'ไม่ต้องสอบสวน', Date_Received: '14-08-2567'},
+                {Event_ID: 'E009', Event_Group: 'โรคติดต่อ', Event_list: 'ไข้หวัดใหญ่', Province_Name: 'ลำปาง', District_Name: 'แม่เมาะ', Subdistrict_Name: 'แม่เมาะ', case: 35, Death: 0, Priority: 'เข้าเกณฑ์ตรวจสอบข่าว แต่ไม่เข้าเกณฑ์ DCIR', Status: 'กำลังติดตาม', Investigation: 'ต้องสอบสวน', Date_Received: '08-09-2567'},
+                {Event_ID: 'E010', Event_Group: 'สิ่งแวดล้อม', Event_list: 'น้ำเสีย', Province_Name: 'ลำพูน', District_Name: 'ป่าซาง', Subdistrict_Name: 'ป่าซาง', case: 28, Death: 0, Priority: 'เข้าเกณฑ์ตรวจสอบข่าว แต่ไม่เข้าเกณฑ์ DCIR', Status: 'รอดำเนินการ', Investigation: 'ต้องสอบสวน', Date_Received: '06-12-2567'}
             ];
             
+            masterData = sampleData;
             currentData = sampleData;
+            initFilters(sampleData);
             processData(sampleData);
         }
 
         function processData(data) {
-            // Calculate summary statistics
             const totalEvents = data.length;
             const totalCases = data.reduce((sum, row) => sum + (parseInt(row.case) || 0), 0);
             const totalDeaths = data.reduce((sum, row) => sum + (parseInt(row.Death) || 0), 0);
@@ -534,70 +673,50 @@ try {
             document.getElementById('totalDeaths').textContent = totalDeaths.toLocaleString();
             document.getElementById('totalProvinces').textContent = uniqueProvinces;
 
-            //     // Update date range
             updateDateRange(data);
 
-            // Create charts
             createEventListTable(data);
             createEventGroupPieChart(data);
             createProvinceChart(data);
             createTimelineChart(data);
             createPriorityChart(data);
+            createSensitivityCharts(data); // New Function
             createStatusChart(data);
             createDataTable(data);
         }
 
         function updateDateRange(data) {
-            // Use fixed date range if available
             if (fixedDateRange) {
                 document.getElementById('startDate').textContent = fixedDateRange.start;
                 document.getElementById('endDate').textContent = fixedDateRange.end;
                 return;
             }
             
-            // Function to parse Thai Buddhist date format (dd-mm-yyyy) to JavaScript Date
             function parseThaiDate(dateStr) {
                 if (!dateStr) return null;
-                
-                // Handle different date formats
                 let day, month, year;
-                
                 if (dateStr.includes('-')) {
-                    // Format: dd-mm-yyyy (Buddhist year)
                     const parts = dateStr.split('-');
                     if (parts.length === 3) {
                         day = parseInt(parts[0]);
                         month = parseInt(parts[1]);
                         year = parseInt(parts[2]);
-                        
-                        // Convert Buddhist year to Christian year if needed
-                        if (year > 2500) {
-                            year = year - 543;
-                        }
-                        
+                        if (year > 2500) year = year - 543;
                         return new Date(year, month - 1, day);
                     }
                 } else if (dateStr.includes('/')) {
-                    // Format: dd/mm/yyyy
                     const parts = dateStr.split('/');
                     if (parts.length === 3) {
                         day = parseInt(parts[0]);
                         month = parseInt(parts[1]);
                         year = parseInt(parts[2]);
-                        
-                        // Convert Buddhist year to Christian year if needed
-                        if (year > 2500) {
-                            year = year - 543;
-                        }
-                        
+                        if (year > 2500) year = year - 543;
                         return new Date(year, month - 1, day);
                     }
                 } else {
-                    // Try standard date parsing as fallback
                     const date = new Date(dateStr);
                     return isNaN(date) ? null : date;
                 }
-                
                 return null;
             }
             
@@ -616,7 +735,6 @@ try {
                 const startDateText = formatDate(minDate);
                 const endDateText = formatDate(maxDate);
                 
-                // Set fixed date range for future use
                 fixedDateRange = {
                     start: startDateText,
                     end: endDateText
@@ -639,7 +757,6 @@ try {
             const startDateText = formatDate(startDateStr);
             const endDateText = formatDate(endDateStr);
             
-            // Update fixed date range
             fixedDateRange = {
                 start: startDateText,
                 end: endDateText
@@ -660,7 +777,6 @@ try {
             const sortedEvents = Object.entries(eventCounts).sort(([,a], [,b]) => b - a);
             const maxCount = Math.max(...sortedEvents.map(([,c]) => c));
 
-            // Update title with total count
             document.getElementById('eventListTitle').textContent = `ตารางแสดงรายชื่อโรคและภัยสุขภาพ (N= ${total})`;
 
             const tableContainer = document.getElementById('eventListTable');
@@ -679,10 +795,9 @@ try {
 
             sortedEvents.forEach(([event, count], index) => {
                 const percentage = ((count / total) * 100).toFixed(1);
-                // Calculate green intensity based on count (darker for higher values)
                 const intensity = count / maxCount;
-                const greenValue = Math.round(255 - (intensity * 100)); // From 255 (light) to 155 (dark)
-                const backgroundColor = `rgba(34, ${greenValue}, 34, ${0.1 + (intensity * 0.4)})`; // Green gradient
+                const greenValue = Math.round(255 - (intensity * 100));
+                const backgroundColor = `rgba(34, ${greenValue}, 34, ${0.1 + (intensity * 0.4)})`;
                 
                 tableHTML += `
                     <tr style="background-color: ${backgroundColor};">
@@ -694,7 +809,6 @@ try {
                 `;
             });
 
-            // Add summary row
             tableHTML += `
                     <tr class="bg-blue-50 border-t-2 border-blue-200">
                         <td class="px-4 py-3 text-sm font-bold text-blue-900" colspan="2">รวมทั้งหมด</td>
@@ -718,7 +832,6 @@ try {
             const total = Object.values(groupCounts).reduce((sum, count) => sum + count, 0);
             const sortedGroups = Object.entries(groupCounts).sort(([,a], [,b]) => b - a);
 
-            // Update title with total count
             document.getElementById('eventGroupTitle').textContent = `สัดส่วนกลุ่มโรคและภัยสุขภาพ (N= ${total})`;
 
             const ctx = document.getElementById('eventGroupPieChart').getContext('2d');
@@ -731,16 +844,16 @@ try {
                     datasets: [{
                         data: sortedGroups.map(([,count]) => count),
                         backgroundColor: [
-                            'rgba(59, 130, 246, 0.8)',   // Blue
-                            'rgba(16, 185, 129, 0.8)',   // Green  
-                            'rgba(245, 101, 101, 0.8)',  // Red
-                            'rgba(139, 92, 246, 0.8)',   // Purple
-                            'rgba(251, 191, 36, 0.8)',   // Yellow
-                            'rgba(236, 72, 153, 0.8)',   // Pink
-                            'rgba(20, 184, 166, 0.8)',   // Teal
-                            'rgba(249, 115, 22, 0.8)',   // Orange
-                            'rgba(107, 114, 128, 0.8)',  // Gray
-                            'rgba(34, 197, 94, 0.8)'     // Emerald
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(16, 185, 129, 0.8)',
+                            'rgba(245, 101, 101, 0.8)',
+                            'rgba(139, 92, 246, 0.8)',
+                            'rgba(251, 191, 36, 0.8)',
+                            'rgba(236, 72, 153, 0.8)',
+                            'rgba(20, 184, 166, 0.8)',
+                            'rgba(249, 115, 22, 0.8)',
+                            'rgba(107, 114, 128, 0.8)',
+                            'rgba(34, 197, 94, 0.8)'
                         ],
                         borderColor: '#fff',
                         borderWidth: 3,
@@ -787,7 +900,6 @@ try {
                 .sort(([,a], [,b]) => b - a)
                 .slice(0, 10);
 
-            // Update title with total count
             document.getElementById('provinceTitle').textContent = `การกระจายตามจังหวัด (N= ${total})`;
 
             const ctx = document.getElementById('provinceChart').getContext('2d');
@@ -848,55 +960,34 @@ try {
         function createTimelineChart(data) {
             const monthCounts = {};
             
-            // Function to parse Thai Buddhist date format (dd-mm-yyyy) to JavaScript Date
             function parseThaiDate(dateStr) {
                 if (!dateStr) return null;
-                
-                // Handle different date formats
                 let day, month, year;
-                
                 if (dateStr.includes('-')) {
-                    // Format: dd-mm-yyyy (Buddhist year)
                     const parts = dateStr.split('-');
                     if (parts.length === 3) {
                         day = parseInt(parts[0]);
                         month = parseInt(parts[1]);
                         year = parseInt(parts[2]);
-                        
-                        // Convert Buddhist year to Christian year if needed
-                        if (year > 2500) {
-                            year = year - 543;
-                        }
-                        
-                        // Create date in dd/mm/yyyy format for processing
+                        if (year > 2500) year = year - 543;
                         return new Date(year, month - 1, day);
                     }
                 } else if (dateStr.includes('/')) {
-                    // Format: dd/mm/yyyy
                     const parts = dateStr.split('/');
                     if (parts.length === 3) {
                         day = parseInt(parts[0]);
                         month = parseInt(parts[1]);
                         year = parseInt(parts[2]);
-                        
-                        // Convert Buddhist year to Christian year if needed
-                        if (year > 2500) {
-                            year = year - 543;
-                        }
-                        
+                        if (year > 2500) year = year - 543;
                         return new Date(year, month - 1, day);
                     }
                 } else {
-                    // Try standard date parsing as fallback
                     const date = new Date(dateStr);
                     return isNaN(date) ? null : date;
                 }
-                
                 return null;
             }
             
-            // Count valid dates only
-            let validDateCount = 0;
             let minYear = Infinity;
             let maxYear = -Infinity;
             
@@ -904,7 +995,6 @@ try {
                 if (row.Date_Received) {
                     const date = parseThaiDate(row.Date_Received);
                     if (date && !isNaN(date)) {
-                        validDateCount++;
                         const year = date.getFullYear();
                         minYear = Math.min(minYear, year);
                         maxYear = Math.max(maxYear, year);
@@ -914,14 +1004,12 @@ try {
                 }
             });
 
-            // Create complete month range for all years
             const allMonths = [];
             if (minYear !== Infinity && maxYear !== -Infinity) {
                 for (let year = minYear; year <= maxYear; year++) {
                     for (let month = 1; month <= 12; month++) {
                         const monthKey = `${year}-${String(month).padStart(2, '0')}`;
                         allMonths.push(monthKey);
-                        // Initialize with 0 if no data exists
                         if (!monthCounts[monthKey]) {
                             monthCounts[monthKey] = 0;
                         }
@@ -929,9 +1017,7 @@ try {
                 }
             }
 
-            // Use total data length for accurate count display
             const total = data.length;
-            // Update title with total count
             document.getElementById('timelineTitle').textContent = `แนวโน้มเหตุการณ์ตามเวลา (N= ${total})`;
 
             const sortedMonths = allMonths.sort().map(monthKey => [monthKey, monthCounts[monthKey] || 0]);
@@ -942,7 +1028,6 @@ try {
                 return `${monthNames[parseInt(month) - 1]} ${year}`;
             });
 
-            // Create single dataset with all data points (including zeros)
             const allData = sortedMonths.map(([monthKey, count], index) => ({
                 x: index,
                 y: count
@@ -977,13 +1062,11 @@ try {
                             pointHoverRadius: 8,
                             segment: {
                                 borderDash: function(ctx) {
-                                    // Create dashed line for segments where both points are zero
                                     const p0 = ctx.p0.parsed.y;
                                     const p1 = ctx.p1.parsed.y;
                                     return (p0 === 0 && p1 === 0) ? [8, 8] : undefined;
                                 },
                                 borderColor: function(ctx) {
-                                    // Make line lighter for zero-value segments
                                     const p0 = ctx.p0.parsed.y;
                                     const p1 = ctx.p1.parsed.y;
                                     return (p0 === 0 && p1 === 0) ? 'rgba(139, 92, 246, 0.4)' : 'rgba(139, 92, 246, 1)';
@@ -1033,6 +1116,7 @@ try {
             });
         }
 
+        // 3. ปรับแก้สีตามเงื่อนไขที่กำหนด
         function createPriorityChart(data) {
             const priorityCounts = {};
             data.forEach(row => {
@@ -1043,15 +1127,12 @@ try {
             const total = Object.values(priorityCounts).reduce((sum, count) => sum + count, 0);
             const sortedPriorities = Object.entries(priorityCounts).sort(([,a], [,b]) => b - a);
 
-            // Update title with total count
-            document.getElementById('priorityTitle').textContent = `เกณฑ์ตรวจสอบข่าว (N= ${total})`;
-
-            // Create color mapping for priorities
+            // Mapping สีใหม่ตามความต้องการ
             const colorMap = {
-                'สูง': 'rgba(239, 68, 68, 0.8)',      // Red
-                'กลาง': 'rgba(245, 158, 11, 0.8)',    // Orange
-                'ต่ำ': 'rgba(34, 197, 94, 0.8)',      // Green
-                'ไม่ระบุ': 'rgba(156, 163, 175, 0.8)' // Gray
+                'เข้าเกณฑ์ตรวจสอบข่าว แต่ไม่เข้าเกณฑ์ DCIR': 'rgba(34, 197, 94, 0.8)', // เขียว
+                'ไม่เข้าเกณฑ์ตรวจสอบข่าวของ SAT': 'rgba(59, 130, 246, 0.8)',        // ฟ้า
+                'เข้าเกณฑ์ตรวจสอบข่าว และ เข้าเกณฑ์ DCIR': 'rgba(239, 68, 68, 0.8)',  // แดง
+                'ไม่ระบุ': 'rgba(156, 163, 175, 0.8)'                               // เทา
             };
 
             const ctx = document.getElementById('priorityChart').getContext('2d');
@@ -1060,12 +1141,12 @@ try {
             chartInstances.priority = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: sortedPriorities.map(([name]) => '●'), // Use colored dots instead of text
+                    labels: sortedPriorities.map(([name]) => '●'), 
                     datasets: [{
                         label: 'จำนวนเหตุการณ์',
                         data: sortedPriorities.map(([,count]) => count),
-                        backgroundColor: sortedPriorities.map(([name]) => colorMap[name] || 'rgba(59, 130, 246, 0.8)'),
-                        borderColor: sortedPriorities.map(([name]) => colorMap[name]?.replace('0.8', '1') || 'rgba(59, 130, 246, 1)'),
+                        backgroundColor: sortedPriorities.map(([name]) => colorMap[name] || 'rgba(156, 163, 175, 0.8)'),
+                        borderColor: sortedPriorities.map(([name]) => colorMap[name]?.replace('0.8', '1') || 'rgba(156, 163, 175, 1)'),
                         borderWidth: 2,
                         borderRadius: 8,
                         borderSkipped: false,
@@ -1081,15 +1162,17 @@ try {
                             labels: {
                                 generateLabels: function(chart) {
                                     return sortedPriorities.map(([name], index) => ({
-                                        text: `${name} (${sortedPriorities[index][1]} ครั้ง)`,
-                                        fillStyle: colorMap[name] || 'rgba(59, 130, 246, 0.8)',
-                                        strokeStyle: colorMap[name]?.replace('0.8', '1') || 'rgba(59, 130, 246, 1)',
+                                        text: `${name}`, // ตัดจำนวนออกเพื่อให้ Legend อ่านง่ายขึ้น
+                                        fillStyle: colorMap[name] || 'rgba(156, 163, 175, 0.8)',
+                                        strokeStyle: colorMap[name]?.replace('0.8', '1') || 'rgba(156, 163, 175, 1)',
                                         lineWidth: 2,
-                                        pointStyle: 'rect'
+                                        pointStyle: 'rect',
+                                        hidden: false,
+                                        index: index
                                     }));
                                 },
-                                font: { family: 'Sarabun', size: 12 },
-                                padding: 15,
+                                font: { family: 'Sarabun', size: 11 }, // ลดขนาดฟอนต์ลงเล็กน้อยเพราะข้อความยาว
+                                padding: 10,
                                 usePointStyle: true
                             }
                         },
@@ -1126,7 +1209,7 @@ try {
                                 color: function(context) {
                                     const index = context.index;
                                     const name = sortedPriorities[index][0];
-                                    return colorMap[name]?.replace('0.8', '1') || 'rgba(59, 130, 246, 1)';
+                                    return colorMap[name]?.replace('0.8', '1') || 'rgba(156, 163, 175, 1)';
                                 }
                             },
                             grid: { display: false }
@@ -1134,6 +1217,61 @@ try {
                     }
                 }
             });
+        }
+
+        // 4. เพิ่มฟังก์ชันสร้างแผนภูมิ Sensitivity (Gauge Charts)
+        function createSensitivityCharts(data) {
+            const N = data.length;
+            if (N === 0) return;
+
+            let countDCIR = 0;
+            let countSMEs = 0;
+
+            data.forEach(row => {
+                const p = row.Priority;
+                if (p === 'เข้าเกณฑ์ตรวจสอบข่าว และ เข้าเกณฑ์ DCIR') countDCIR++;
+                if (p === 'เข้าเกณฑ์ตรวจสอบข่าว แต่ไม่เข้าเกณฑ์ DCIR') countSMEs++;
+            });
+
+            const sensDCIR = ((countDCIR / N) * 100).toFixed(1);
+            const sensSMEs = ((countSMEs / N) * 100).toFixed(1);
+
+            document.getElementById('sensitivityDCIRValue').textContent = `${sensDCIR}%`;
+            document.getElementById('sensitivitySMEsValue').textContent = `${sensSMEs}%`;
+
+            // Function to create gauge config
+            const createGaugeConfig = (percentage, color) => ({
+                type: 'doughnut',
+                data: {
+                    labels: ['Sensitivity', 'Remaining'],
+                    datasets: [{
+                        data: [percentage, 100 - percentage],
+                        backgroundColor: [color, '#e5e7eb'],
+                        borderWidth: 0,
+                        cutout: '75%',
+                        circumference: 180,
+                        rotation: 270,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    }
+                }
+            });
+
+            // DCIR Chart (Red)
+            const ctxDCIR = document.getElementById('sensitivityDCIRChart').getContext('2d');
+            if (chartInstances.sensDCIR) chartInstances.sensDCIR.destroy();
+            chartInstances.sensDCIR = new Chart(ctxDCIR, createGaugeConfig(sensDCIR, '#EF4444'));
+
+            // SMEs Chart (Green)
+            const ctxSMEs = document.getElementById('sensitivitySMEsChart').getContext('2d');
+            if (chartInstances.sensSMEs) chartInstances.sensSMEs.destroy();
+            chartInstances.sensSMEs = new Chart(ctxSMEs, createGaugeConfig(sensSMEs, '#10B981'));
         }
 
         function createStatusChart(data) {
@@ -1146,7 +1284,6 @@ try {
             const total = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
             const sortedStatuses = Object.entries(statusCounts).sort(([,a], [,b]) => b - a);
 
-            // Update title with total count
             document.getElementById('statusTitle').textContent = `สถานะการติดตาม (N= ${total})`;
 
             const ctx = document.getElementById('statusChart').getContext('2d');
@@ -1160,11 +1297,11 @@ try {
                         label: 'จำนวนเหตุการณ์',
                         data: sortedStatuses.map(([,count]) => count),
                         backgroundColor: [
-                            'rgba(20, 184, 166, 0.8)',  // Teal - Completed
-                            'rgba(251, 191, 36, 0.8)',  // Yellow - In progress
-                            'rgba(239, 68, 68, 0.8)',   // Red - Pending
-                            'rgba(139, 92, 246, 0.8)',  // Purple - Under review
-                            'rgba(156, 163, 175, 0.8)'  // Gray - Unknown
+                            'rgba(20, 184, 166, 0.8)',
+                            'rgba(251, 191, 36, 0.8)',
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(139, 92, 246, 0.8)',
+                            'rgba(156, 163, 175, 0.8)'
                         ],
                         borderColor: [
                             'rgba(20, 184, 166, 1)',
@@ -1223,13 +1360,11 @@ try {
             const header = document.getElementById('tableHeader');
             const body = document.getElementById('tableBody');
 
-            // Clear existing content
             header.innerHTML = '';
             body.innerHTML = '';
 
             if (data.length === 0) return;
 
-            // Create header
             const columns = Object.keys(data[0]);
             columns.forEach(col => {
                 const th = document.createElement('th');
@@ -1238,7 +1373,6 @@ try {
                 header.appendChild(th);
             });
 
-            // Create rows (show last 10 rows)
             data.slice(-10).reverse().forEach((row, index) => {
                 const tr = document.createElement('tr');
                 tr.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
@@ -1264,9 +1398,8 @@ try {
             }
         }
     </script>
-
-<!-- SUN minimal exports & chart title utilities -->
-<script>
+    
+    <script>
 (function(){
   function ensureXLSX(cb){
     if (window.XLSX && XLSX.utils && XLSX.writeFile) { cb(); return; }
@@ -1376,7 +1509,5 @@ try {
   document.addEventListener('DOMContentLoaded', boot);
 })();
 </script>
-<!-- /SUN minimal -->
-
 </body>
 </html>
