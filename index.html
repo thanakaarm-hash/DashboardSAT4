@@ -767,53 +767,108 @@
         }
 
         function createEventListTable(data) {
-            const eventCounts = {};
+            // 1. สร้างตัวแปรเก็บข้อมูลแบบ Object เพื่อแยกนับ DCIR และ SME
+            const eventStats = {};
+            
             data.forEach(row => {
                 const event = row.Event_list || 'ไม่ระบุ';
-                eventCounts[event] = (eventCounts[event] || 0) + 1;
+                const priority = row.Priority || '';
+
+                if (!eventStats[event]) {
+                    eventStats[event] = { 
+                        total: 0, 
+                        dcir: 0, 
+                        sme: 0 
+                    };
+                }
+
+                // นับจำนวนรวม
+                eventStats[event].total++;
+
+                // นับตามเงื่อนไข DCIR และ SME
+                if (priority === 'เข้าเกณฑ์ตรวจสอบข่าว และ เข้าเกณฑ์ DCIR') {
+                    eventStats[event].dcir++;
+                } else if (priority === 'เข้าเกณฑ์ตรวจสอบข่าว แต่ไม่เข้าเกณฑ์ DCIR') {
+                    eventStats[event].sme++;
+                }
             });
 
-            const total = Object.values(eventCounts).reduce((sum, count) => sum + count, 0);
-            const sortedEvents = Object.entries(eventCounts).sort(([,a], [,b]) => b - a);
-            const maxCount = Math.max(...sortedEvents.map(([,c]) => c));
+            // 2. คำนวณยอดรวมทั้งหมดเพื่อใช้ในแถว Summary Footer
+            const totalStats = Object.values(eventStats).reduce((acc, curr) => {
+                acc.total += curr.total;
+                acc.dcir += curr.dcir;
+                acc.sme += curr.sme;
+                return acc;
+            }, { total: 0, dcir: 0, sme: 0 });
 
-            document.getElementById('eventListTitle').textContent = `ตารางแสดงรายชื่อโรคและภัยสุขภาพ (N= ${total})`;
+            // 3. เรียงลำดับข้อมูลตามจำนวนรวม (มากไปน้อย)
+            const sortedEvents = Object.entries(eventStats).sort(([,a], [,b]) => b.total - a.total);
+            const maxCount = sortedEvents.length > 0 ? sortedEvents[0][1].total : 0;
+
+            // อัปเดตหัวข้อตาราง
+            document.getElementById('eventListTitle').textContent = `ตารางแสดงรายชื่อโรคและภัยสุขภาพ (N= ${totalStats.total.toLocaleString()})`;
 
             const tableContainer = document.getElementById('eventListTable');
+            
+            // 4. สร้าง HTML ตารางใหม่ (เพิ่มคอลัมน์ DCIR และ SME)
             let tableHTML = `
                 <table class="min-w-full">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ลำดับ</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">รายชื่อโรคและภัยสุขภาพ</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">จำนวนเหตุการณ์</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ร้อยละ</th>
+                    <thead class="bg-gray-50 sticky top-0 z-10 shadow-sm"> <tr>
+                            <th class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ลำดับ</th>
+                            <th class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">รายชื่อโรค/ภัยสุขภาพ</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-gray-900 uppercase tracking-wider bg-gray-100">จำนวนรวม</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-red-600 uppercase tracking-wider bg-red-50">DCIR</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-red-600 uppercase tracking-wider bg-red-50">%</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-green-600 uppercase tracking-wider bg-green-50">SME</th>
+                            <th class="px-2 py-3 text-center text-xs font-medium text-green-600 uppercase tracking-wider bg-green-50">%</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
             `;
 
-            sortedEvents.forEach(([event, count], index) => {
-                const percentage = ((count / total) * 100).toFixed(1);
-                const intensity = count / maxCount;
-                const greenValue = Math.round(255 - (intensity * 100));
-                const backgroundColor = `rgba(34, ${greenValue}, 34, ${0.1 + (intensity * 0.4)})`;
+            sortedEvents.forEach(([event, stats], index) => {
+                // คำนวณร้อยละของแถวนั้นๆ
+                const dcirPercent = stats.total > 0 ? ((stats.dcir / stats.total) * 100).toFixed(1) : '0.0';
+                const smePercent = stats.total > 0 ? ((stats.sme / stats.total) * 100).toFixed(1) : '0.0';
+
+                // คำนวณสีพื้นหลังตามความเข้ม (Intensity) จากจำนวนรวม
+                const intensity = maxCount > 0 ? stats.total / maxCount : 0;
+                const greenValue = Math.round(255 - (intensity * 50)); // ปรับให้สีอ่อนลงหน่อยเพื่อให้ตัวหนังสืออ่านง่าย
+                const backgroundColor = `rgba(34, ${greenValue}, 34, ${0.05 + (intensity * 0.2)})`; // Base green gradient
                 
                 tableHTML += `
-                    <tr style="background-color: ${backgroundColor};">
-                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">${index + 1}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900">${event}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900 text-center font-bold">${count.toLocaleString()}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900 text-center font-medium">${percentage}%</td>
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-2 py-2 text-sm text-gray-900 font-medium text-center">${index + 1}</td>
+                        <td class="px-2 py-2 text-sm text-gray-900 font-medium relative">
+                            <div class="absolute inset-0 opacity-30" style="background-color: ${backgroundColor}; width: 100%;"></div>
+                            <span class="relative z-10">${event}</span>
+                        </td>
+                        <td class="px-2 py-2 text-sm text-gray-900 text-center font-bold bg-gray-50">${stats.total.toLocaleString()}</td>
+                        
+                        <td class="px-2 py-2 text-sm text-gray-600 text-center font-medium">${stats.dcir > 0 ? stats.dcir.toLocaleString() : '-'}</td>
+                        <td class="px-2 py-2 text-xs text-gray-500 text-center">${stats.dcir > 0 ? dcirPercent + '%' : '-'}</td>
+                        
+                        <td class="px-2 py-2 text-sm text-gray-600 text-center font-medium">${stats.sme > 0 ? stats.sme.toLocaleString() : '-'}</td>
+                        <td class="px-2 py-2 text-xs text-gray-500 text-center">${stats.sme > 0 ? smePercent + '%' : '-'}</td>
                     </tr>
                 `;
             });
 
+            // คำนวณร้อยละรวม (Grand Total Percentage)
+            const totalDcirPercent = totalStats.total > 0 ? ((totalStats.dcir / totalStats.total) * 100).toFixed(1) : '0.0';
+            const totalSmePercent = totalStats.total > 0 ? ((totalStats.sme / totalStats.total) * 100).toFixed(1) : '0.0';
+
+            // เพิ่มแถว Summary Footer
             tableHTML += `
-                    <tr class="bg-blue-50 border-t-2 border-blue-200">
-                        <td class="px-4 py-3 text-sm font-bold text-blue-900" colspan="2">รวมทั้งหมด</td>
-                        <td class="px-4 py-3 text-sm font-bold text-blue-900 text-center">${total.toLocaleString()}</td>
-                        <td class="px-4 py-3 text-sm font-bold text-blue-900 text-center">100.0%</td>
+                    <tr class="bg-indigo-50 border-t-2 border-indigo-200 sticky bottom-0 z-10 font-bold shadow-inner">
+                        <td class="px-2 py-3 text-sm text-indigo-900 text-center" colspan="2">รวมทั้งหมด</td>
+                        <td class="px-2 py-3 text-sm text-indigo-900 text-center bg-indigo-100">${totalStats.total.toLocaleString()}</td>
+                        
+                        <td class="px-2 py-3 text-sm text-indigo-900 text-center">${totalStats.dcir.toLocaleString()}</td>
+                        <td class="px-2 py-3 text-xs text-indigo-800 text-center">${totalDcirPercent}%</td>
+                        
+                        <td class="px-2 py-3 text-sm text-indigo-900 text-center">${totalStats.sme.toLocaleString()}</td>
+                        <td class="px-2 py-3 text-xs text-indigo-800 text-center">${totalSmePercent}%</td>
                     </tr>
                     </tbody>
                 </table>
