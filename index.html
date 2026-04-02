@@ -32,7 +32,7 @@
                     </div>
                 </div>
                 <div class="flex-shrink-0 bg-white p-2 rounded-xl shadow-md transform hover:scale-105 transition-transform duration-300">
-                    <img src="./smart_sat_logo.png" alt="Smart SAT 4 Network" class="h-16 lg:h-20 w-auto object-contain">
+                    <img src="./smart_sat_logo.png" alt="Smart SAT 4 Network" class="h-16 lg:h-20 w-auto object-contain" onerror="this.style.display='none'">
                 </div>
             </div>
             <div class="mt-4 text-center lg:text-right border-t border-white/20 pt-2">
@@ -746,7 +746,7 @@
         }
 
         // ==========================================
-        // ส่วนที่ซันปรับปรุงใหม่ตาม Requirement ครับ! 🌟
+        // ส่วน Timeline Chart (เวอร์ชันล่าสุด: เปรียบเทียบรายปี + เส้นประอนาคต)
         // ==========================================
         function createTimelineChart(data) {
             const yearMonthCounts = {};
@@ -772,7 +772,7 @@
             const sortedYears = Array.from(years).sort((a, b) => a - b);
             const mn = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
-            // 3. กำหนดชุดสีสวยๆ แจ่มๆ สำหรับแต่ละปี
+            // 3. กำหนดชุดสีสำหรับแต่ละปี
             const colors = [
                 'rgba(139, 92, 246, 1)',  // Purple
                 'rgba(59, 130, 246, 1)',  // Blue
@@ -783,7 +783,12 @@
                 'rgba(20, 184, 166, 1)'   // Teal
             ];
 
-            // 4. สร้าง Dataset เป็นหลายๆ เส้นตามจำนวนปี พ.ศ. ที่มีในข้อมูล
+            // --- คำนวณวันเดือนปีปัจจุบัน สำหรับเช็กเดือนในอนาคต ---
+            const now = new Date();
+            const currentYear = now.getFullYear() + 543;
+            const currentMonth = now.getMonth();
+
+            // 4. สร้าง Dataset
             const datasets = sortedYears.map((year, index) => {
                 const color = colors[index % colors.length];
                 return {
@@ -792,14 +797,52 @@
                     borderColor: color,
                     backgroundColor: color.replace('1)', '0.1)'),
                     borderWidth: 3,
-                    fill: false, // ปิด fill เพื่อให้เห็นกราฟหลายปีตัดกันได้ชัดเจน
+                    fill: false,
                     tension: 0.4,
-                    pointBackgroundColor: color,
-                    pointBorderColor: '#fff',
+                    // ปรับสีจุด: ถ้าเป็นเดือนอนาคต ให้สีจุดจางลง
+                    pointBackgroundColor: ctx => {
+                        const mIndex = ctx.dataIndex;
+                        if (year > currentYear || (year === currentYear && mIndex > currentMonth)) {
+                            return color.replace('1)', '0.2)');
+                        }
+                        return color;
+                    },
+                    pointBorderColor: ctx => {
+                        const mIndex = ctx.dataIndex;
+                        if (year > currentYear || (year === currentYear && mIndex > currentMonth)) {
+                            return color.replace('1)', '0.4)');
+                        }
+                        return '#fff';
+                    },
                     pointBorderWidth: 2,
                     pointRadius: 4,
                     pointHoverRadius: 6,
-                    spanGaps: true
+                    spanGaps: true,
+                    customYear: year, // ตัวแปรซ่อนไว้ใช้ดึงค่าปีใน segment
+                    
+                    // --- ลอจิกวาดเส้นประ (Segment) ---
+                    segment: {
+                        borderDash: ctx => {
+                            const dsYear = ctx.chart.data.datasets[ctx.datasetIndex].customYear;
+                            const p1Month = ctx.p1DataIndex; // เดือนปลายทางของเส้นลาก
+                            
+                            // ถ้าลากไปยังเดือนที่ยังมาไม่ถึง (อนาคต) ให้เป็นเส้นประ [ความยาวขีด, ช่องว่าง]
+                            if (dsYear > currentYear || (dsYear === currentYear && p1Month > currentMonth)) {
+                                return [5, 5]; 
+                            }
+                            return undefined; // เส้นทึบปกติ
+                        },
+                        borderColor: ctx => {
+                            const dsYear = ctx.chart.data.datasets[ctx.datasetIndex].customYear;
+                            const p1Month = ctx.p1DataIndex;
+                            
+                            // ดรอปสีเส้นประให้จางลงนิดนึง จะได้แยกชัดเจนขึ้น
+                            if (dsYear > currentYear || (dsYear === currentYear && p1Month > currentMonth)) {
+                                return color.replace('1)', '0.4)');
+                            }
+                            return color;
+                        }
+                    }
                 };
             });
 
@@ -820,7 +863,7 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: true, // เปิดการแสดง Legend
+                            display: true,
                             position: 'top',
                             labels: {
                                 font: { family: 'Sarabun', size: 12 },
@@ -829,7 +872,7 @@
                             }
                         },
                         tooltip: {
-                            mode: 'index', // ตั้งเป็น index ให้โชว์เปรียบเทียบทุกปีใน Tooltip เดียวกัน
+                            mode: 'index',
                             intersect: false,
                             titleFont: { family: 'Sarabun', size: 14 },
                             bodyFont: { family: 'Sarabun', size: 13 }
