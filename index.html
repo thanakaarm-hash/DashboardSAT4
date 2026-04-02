@@ -46,30 +46,43 @@
     <div class="container mx-auto px-6 mt-6">
         <div class="bg-white rounded-xl shadow p-4 border border-gray-200">
 
-            <div class="flex flex-wrap items-end gap-4 mb-4">
-                <div class="flex-1 min-w-[160px]">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
-                    <select id="filterProvince" class="w-full rounded-lg border-gray-300 border p-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        <option value="">ทั้งหมด</option>
-                    </select>
+            <div class="flex flex-col lg:flex-row gap-4 mb-4">
+                <div class="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">จังหวัด</label>
+                        <select id="filterProvince" class="w-full rounded-lg border-gray-300 border p-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                            <option value="">ทั้งหมด</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">อำเภอ</label>
+                        <select id="filterDistrict" class="w-full rounded-lg border-gray-300 border p-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm" disabled>
+                            <option value="">ทั้งหมด</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ตำบล</label>
+                        <select id="filterSubdistrict" class="w-full rounded-lg border-gray-300 border p-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm" disabled>
+                            <option value="">ทั้งหมด</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="flex-1 min-w-[160px]">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">อำเภอ</label>
-                    <select id="filterDistrict" class="w-full rounded-lg border-gray-300 border p-2 focus:ring-indigo-500 focus:border-indigo-500" disabled>
-                        <option value="">ทั้งหมด</option>
-                    </select>
-                </div>
-                <div class="flex-1 min-w-[160px]">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">ตำบล</label>
-                    <select id="filterSubdistrict" class="w-full rounded-lg border-gray-300 border p-2 focus:ring-indigo-500 focus:border-indigo-500" disabled>
-                        <option value="">ทั้งหมด</option>
-                    </select>
-                </div>
-                <div>
-                    <button id="resetFilterBtn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors flex items-center whitespace-nowrap">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                        รีเซ็ตทั้งหมด
-                    </button>
+                
+                <div class="flex-1 flex flex-col md:flex-row gap-4 items-start">
+                    <div class="flex-1 w-full">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            โรค/ภัยสุขภาพ 
+                            <span class="text-xs text-indigo-500 font-normal ml-1">(กด Ctrl/Cmd เพื่อเลือกหลายโรค)</span>
+                        </label>
+                        <select id="filterEventList" multiple class="w-full rounded-lg border-gray-300 border p-2 focus:ring-indigo-500 focus:border-indigo-500 h-24 text-sm overflow-y-auto">
+                        </select>
+                    </div>
+                    <div class="pt-6 w-full md:w-auto">
+                        <button id="resetFilterBtn" class="w-full md:w-auto bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors flex items-center justify-center whitespace-nowrap h-[42px]">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            รีเซ็ตทั้งหมด
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -311,6 +324,7 @@
         const filterProvince    = document.getElementById('filterProvince');
         const filterDistrict    = document.getElementById('filterDistrict');
         const filterSubdistrict = document.getElementById('filterSubdistrict');
+        const filterEventList   = document.getElementById('filterEventList'); // <- เพิ่มตัวแปร DOM สำหรับ Event List
         const resetFilterBtn    = document.getElementById('resetFilterBtn');
 
         const filterYear        = document.getElementById('filterYear');
@@ -325,7 +339,7 @@
         let isAuthenticated = false;
 
         // ================================================================
-        //  SHARED DATE PARSER  — handles dd-mm-yyyy, dd/mm/yyyy (BE or CE)
+        //  SHARED DATE PARSER
         // ================================================================
         function parseThaiDate(dateStr) {
             if (!dateStr) return null;
@@ -360,7 +374,7 @@
                 opt.value = by; opt.textContent = `พ.ศ. ${by}`;
                 filterYear.appendChild(opt);
             });
-            if (prevVal) filterYear.value = prevVal; // restore selection if still valid
+            if (prevVal) filterYear.value = prevVal; 
         }
 
         // ================================================================
@@ -370,6 +384,10 @@
             const province    = filterProvince.value;
             const district    = filterDistrict.value;
             const subdistrict = filterSubdistrict.value;
+            
+            // ดึงค่าโรคทั้งหมดที่ถูกเลือก (Array)
+            const selectedEvents = Array.from(filterEventList.selectedOptions).map(opt => opt.value);
+            
             const year        = activeDateFilter.year;
             const dateStart   = activeDateFilter.dateStart;
             const dateEnd     = activeDateFilter.dateEnd;
@@ -382,15 +400,16 @@
                 if (province    && item.Province_Name    !== province)    return false;
                 if (district    && item.District_Name    !== district)    return false;
                 if (subdistrict && item.Subdistrict_Name !== subdistrict) return false;
+                
+                // ถ้ายูสเซอร์เลือกโรคใดๆ ไว้ (1 โรคขึ้นไป) และโรคในแถวข้อมูลนั้นไม่ตรงกับที่เลือก -> คัดออก
+                if (selectedEvents.length > 0 && !selectedEvents.includes(item.Event_list)) return false;
 
                 if (year || dsDate || deDate) {
                     const d = parseThaiDate(item.Date_Received);
                     if (!d || isNaN(d)) return false;
-                    // Year-only filter
                     if (year && !dsDate && !deDate) {
                         if (toBuddhistYear(d.getFullYear()) !== parseInt(year)) return false;
                     }
-                    // Date range (overrides year if both set)
                     if (dsDate && d < dsDate) return false;
                     if (deDate && d > deDate) return false;
                 }
@@ -403,7 +422,7 @@
         }
 
         // ================================================================
-        //  DATE FILTER UI FEEDBACK
+        //  DATE FILTER UI FEEDBACK (ปรับให้แสดงข้อมูลโรคด้วย)
         // ================================================================
         function formatBEDate(iso) {
             if (!iso) return '?';
@@ -416,9 +435,12 @@
         function updateDateFilterUI() {
             const hasYear  = !!activeDateFilter.year;
             const hasRange = !!(activeDateFilter.dateStart || activeDateFilter.dateEnd);
-            const isActive = hasYear || hasRange;
+            const selectedEvents = Array.from(filterEventList.selectedOptions).map(o => o.value);
+            
+            // เช็กว่ามีการเปิดใช้งานตัวกรองใดๆ ในแถบข้อมูลไหม
+            const isActive = hasYear || hasRange || selectedEvents.length > 0;
 
-            dateFilterBadge.classList.toggle('hidden', !isActive);
+            dateFilterBadge.classList.toggle('hidden', !(hasYear || hasRange));
             activeFilterSummary.classList.toggle('hidden', !isActive);
 
             if (isActive) {
@@ -429,6 +451,11 @@
                     const e = activeDateFilter.dateEnd   ? formatBEDate(activeDateFilter.dateEnd)   : 'ปัจจุบัน';
                     parts.push(`ช่วงวันที่: ${s} – ${e}`);
                 }
+                // สรุปการเลือกโรค
+                if (selectedEvents.length > 0) {
+                    parts.push(`เลือก ${selectedEvents.length} โรค/ภัยสุขภาพ`);
+                }
+                
                 activeFilterText.textContent =
                     `กำลังกรองข้อมูล: ${parts.join(' | ')} — แสดงผล ${currentData.length.toLocaleString()} รายการ`;
             }
@@ -439,78 +466,50 @@
         // ================================================================
         filterYear.addEventListener('change', () => {
             activeDateFilter.year = filterYear.value;
-            // Clear manual range when year selected for clarity
             if (filterYear.value) {
-                activeDateFilter.dateStart = '';
-                activeDateFilter.dateEnd   = '';
-                filterDateStart.value = '';
-                filterDateEnd.value   = '';
+                activeDateFilter.dateStart = ''; activeDateFilter.dateEnd = '';
+                filterDateStart.value = ''; filterDateEnd.value = '';
             }
             applyFilters();
         });
 
         applyDateFilterBtn.addEventListener('click', () => {
-            const ds = filterDateStart.value;
-            const de = filterDateEnd.value;
-            if (ds && de && ds > de) {
-                alert('วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด');
-                return;
-            }
-            activeDateFilter.dateStart = ds;
-            activeDateFilter.dateEnd   = de;
-            // Clear year when date range is set
-            if (ds || de) {
-                activeDateFilter.year = '';
-                filterYear.value = '';
-            }
+            const ds = filterDateStart.value; const de = filterDateEnd.value;
+            if (ds && de && ds > de) { alert('วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด'); return; }
+            activeDateFilter.dateStart = ds; activeDateFilter.dateEnd = de;
+            if (ds || de) { activeDateFilter.year = ''; filterYear.value = ''; }
             applyFilters();
         });
 
         clearDateFilterBtn.addEventListener('click', () => {
             activeDateFilter = { year: '', dateStart: '', dateEnd: '' };
-            filterYear.value = '';
-            filterDateStart.value = '';
-            filterDateEnd.value   = '';
+            filterYear.value = ''; filterDateStart.value = ''; filterDateEnd.value = '';
             applyFilters();
         });
 
         // ================================================================
-        //  UPLOAD TOGGLE
+        //  UPLOAD & AUTH 
         // ================================================================
-        uploadToggle.addEventListener('click', () => {
-            uploadContent.classList.toggle('hidden');
-            uploadArrow.classList.toggle('rotate-180');
-        });
+        uploadToggle.addEventListener('click', () => { uploadContent.classList.toggle('hidden'); uploadArrow.classList.toggle('rotate-180'); });
 
-        // ================================================================
-        //  AUTHENTICATION
-        // ================================================================
         authBtn.addEventListener('click', () => {
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
+            const u = document.getElementById('username').value, p = document.getElementById('password').value;
             if (u === 'SAT Manager' && p === 'odpc004999') {
-                isAuthenticated = true;
-                authForm.classList.add('hidden');
-                document.getElementById('dateRangeForm').classList.remove('hidden');
-                uploadContainer.classList.remove('hidden');
-                authError.classList.add('hidden');
-                document.getElementById('fileInfo').classList.add('hidden');
-            } else {
-                authError.textContent = 'Username หรือ Password ไม่ถูกต้อง';
-                authError.classList.remove('hidden');
-            }
+                isAuthenticated = true; authForm.classList.add('hidden');
+                document.getElementById('dateRangeForm').classList.remove('hidden'); uploadContainer.classList.remove('hidden');
+                authError.classList.add('hidden'); document.getElementById('fileInfo').classList.add('hidden');
+            } else { authError.textContent = 'Username หรือ Password ไม่ถูกต้อง'; authError.classList.remove('hidden'); }
         });
         document.getElementById('password').addEventListener('keypress', e => { if (e.key === 'Enter') authBtn.click(); });
 
         document.getElementById('updateDateBtn').addEventListener('click', () => {
-            const s = document.getElementById('customStartDate').value;
-            const e = document.getElementById('customEndDate').value;
+            const s = document.getElementById('customStartDate').value, e = document.getElementById('customEndDate').value;
             if (s && e) { updateCustomDateRange(s, e); localStorage.setItem('customStartDate', s); localStorage.setItem('customEndDate', e); }
             else alert('กรุณากรอกวันที่เริ่มต้นและวันที่สิ้นสุด');
         });
 
         // ================================================================
-        //  LOCATION FILTER LOGIC
+        //  LOCATION & EVENT FILTER LOGIC
         // ================================================================
         function populateSelect(sel, items, defaultText = 'ทั้งหมด') {
             sel.innerHTML = `<option value="">${defaultText}</option>`;
@@ -520,6 +519,19 @@
         function initFilters(data) {
             populateSelect(filterProvince, [...new Set(data.map(d => d.Province_Name))]);
             populateYearFilter(data);
+            
+            // ดึงรายชื่อ Event_list ทั้งหมดเพื่อนำมาใส่ใน Multiple Select
+            const events = [...new Set(data.map(d => d.Event_list).filter(Boolean))].sort();
+            filterEventList.innerHTML = ''; // เคลียร์ของเก่า (ไม่ต้องมี option "ทั้งหมด" เพราะใช้วิธีคลิกหลายอัน)
+            events.forEach(item => {
+                const o = document.createElement('option');
+                o.value = o.textContent = item;
+                // ตัดแต่งให้ตัวอักษรสวยงาม
+                o.className = "p-1 hover:bg-indigo-50 border-b border-gray-50"; 
+                filterEventList.appendChild(o);
+            });
+            // หากมีการเลือกโรค ให้รีรันการอัปเดตข้อมูล
+            filterEventList.addEventListener('change', applyFilters);
 
             filterProvince.onchange = () => {
                 const prov = filterProvince.value;
@@ -544,6 +556,10 @@
             filterProvince.value = '';
             filterDistrict.innerHTML = '<option value="">ทั้งหมด</option>'; filterDistrict.disabled = true;
             filterSubdistrict.innerHTML = '<option value="">ทั้งหมด</option>'; filterSubdistrict.disabled = true;
+            
+            // ล้างค่าที่เลือกไว้ในช่องโรค
+            Array.from(filterEventList.options).forEach(opt => opt.selected = false);
+            
             activeDateFilter = { year: '', dateStart: '', dateEnd: '' };
             filterYear.value = ''; filterDateStart.value = ''; filterDateEnd.value = '';
             applyFilters();
@@ -598,6 +614,10 @@
                 localStorage.setItem('uploadedData', JSON.stringify(jsonData));
                 activeDateFilter = { year: '', dateStart: '', dateEnd: '' };
                 filterYear.value = ''; filterDateStart.value = ''; filterDateEnd.value = '';
+                
+                // รีเซ็ตตัวเลือกโรคด้วย
+                if(filterEventList) Array.from(filterEventList.options).forEach(opt => opt.selected = false);
+                
                 initFilters(jsonData); processData(jsonData);
                 uploadContent.classList.add('hidden'); uploadArrow.classList.remove('rotate-180');
             };
@@ -746,7 +766,7 @@
         }
 
         // ==========================================
-        // ส่วน Timeline Chart (เวอร์ชันล่าสุด: เปรียบเทียบรายปี + เส้นประอนาคต)
+        // ส่วน Timeline Chart (เวอร์ชันเปรียบเทียบรายปี + เส้นประอนาคต)
         // ==========================================
         function createTimelineChart(data) {
             const yearMonthCounts = {};
@@ -824,19 +844,17 @@
                     segment: {
                         borderDash: ctx => {
                             const dsYear = ctx.chart.data.datasets[ctx.datasetIndex].customYear;
-                            const p1Month = ctx.p1DataIndex; // เดือนปลายทางของเส้นลาก
+                            const p1Month = ctx.p1DataIndex; 
                             
-                            // ถ้าลากไปยังเดือนที่ยังมาไม่ถึง (อนาคต) ให้เป็นเส้นประ [ความยาวขีด, ช่องว่าง]
                             if (dsYear > currentYear || (dsYear === currentYear && p1Month > currentMonth)) {
                                 return [5, 5]; 
                             }
-                            return undefined; // เส้นทึบปกติ
+                            return undefined; 
                         },
                         borderColor: ctx => {
                             const dsYear = ctx.chart.data.datasets[ctx.datasetIndex].customYear;
                             const p1Month = ctx.p1DataIndex;
                             
-                            // ดรอปสีเส้นประให้จางลงนิดนึง จะได้แยกชัดเจนขึ้น
                             if (dsYear > currentYear || (dsYear === currentYear && p1Month > currentMonth)) {
                                 return color.replace('1)', '0.4)');
                             }
